@@ -1,0 +1,37 @@
+//#define FIELD(name, readOnly, cType, mType, numberOfElements)
+
+		  //Name                //Read-only     //C++ type      //MATLAB class      //MATLAB number of elements
+	FIELD(run, 					false, 			bool,			mxLOGICAL_CLASS,	1)
+	FIELD(quit, 				false, 			bool,			mxLOGICAL_CLASS,	1)
+	FIELD(signalNow,			false, 			bool,			mxLOGICAL_CLASS,	1)
+	FIELD(signalOnFrame, 		false, 			int,			mxINT32_CLASS,		1)
+	FIELD(stopAfterFrame, 		false, 			int,			mxINT32_CLASS,		1)
+	FIELD(bufferFrameSize, 		true, 			int,			mxINT32_CLASS,		1)
+	FIELD(bufferFrameIndex, 	false, 			int,			mxINT32_CLASS,		1)
+	FIELD(adapter, 				true, 			int,			mxINT32_CLASS,		1)
+	FIELD(monitor, 				true, 			int,			mxINT32_CLASS,		1)
+	FIELD(screenWidth, 			true, 			int,			mxINT32_CLASS,		1)
+	FIELD(screenHeight, 		true, 			int,			mxINT32_CLASS,		1)
+	FIELD(frameWidth, 			true, 			int,			mxINT32_CLASS,		1)
+	FIELD(frameHeight, 			true, 			int,			mxINT32_CLASS,		1)
+	FIELD(renderWidth, 			false, 			int,			mxINT32_CLASS,		1)
+	FIELD(renderHeight, 		false, 			int,			mxINT32_CLASS,		1)
+	FIELD(renderPosX, 			false, 			int,			mxINT32_CLASS,		1)
+	FIELD(renderPosY, 			false, 			int,			mxINT32_CLASS,		1)
+	FIELD(fullscreen, 			true, 			bool,			mxLOGICAL_CLASS,	1)
+	FIELD(frameRateDivider, 	false, 			int,			mxINT32_CLASS,		1)
+	FIELD(frameCounter, 		false, 			int,			mxINT32_CLASS,		1)
+	FIELD(processingTimes, 		false, 			bool,			mxLOGICAL_CLASS,	1)
+	FIELD(refreshRate,          true, 			double,			mxDOUBLE_CLASS,		1)
+	FIELD(startTime,            true, 			SYSTEMTIME,		mxUINT16_CLASS,		8)
+	
+#ifdef ENABLE_TRIGGERING
+	FIELD(pulseEnable,			false, 			bool,			mxLOGICAL_CLASS,	1)
+	FIELD(pulseDelayFrames,		false, 			int,			mxINT32_CLASS,		1)
+	FIELD(pulseDelayTime, 		false, 			double,			mxDOUBLE_CLASS,		1)
+	FIELD(pulseHighTime, 		false, 			double,			mxDOUBLE_CLASS,		1)
+	FIELD(pulseLowTime, 		false, 			double,			mxDOUBLE_CLASS,		1)
+	FIELD(pulseNumber, 			false, 			int,			mxINT32_CLASS,		1)
+	FIELD(pulseSync, 			false, 			bool,			mxLOGICAL_CLASS,	1)
+#endif
+#undef FIELD
