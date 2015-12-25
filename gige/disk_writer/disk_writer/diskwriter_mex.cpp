@@ -118,9 +118,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 		PvImage *lImage = pBuffer->GetImage();
 
 		// Read image dimensions
-		PvUInt32 ImageWidth = lImage->GetWidth();
-		PvUInt32 ImageHeight = lImage->GetHeight();
-		PvUInt32 ImageBpp = lImage->GetBitsPerPixel();
+		uint32_t ImageWidth = lImage->GetWidth();
+        uint32_t ImageHeight = lImage->GetHeight();
+		uint32_t ImageBpp = lImage->GetBitsPerPixel();
 
 		// Prepare dimensions of the MATLAB frames array
 		mwSize ndims = 4;
@@ -128,7 +128,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
 		// Prepare MATLAB time array
 		mxArray*  mxTime = mxCreateNumericMatrix((int)NumberOfFrames, 1, mxUINT64_CLASS, mxREAL);
-		PvUInt64*  pTime = (PvUInt64*)mxGetData(mxTime);
+		uint64_t*  pTime = (uint64_t*)mxGetData(mxTime);
 
 		// Transfer frames
 		switch (ImageBpp)

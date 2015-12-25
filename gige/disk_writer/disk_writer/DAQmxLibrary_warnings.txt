@@ -1,0 +1,168 @@
+NIDAQmx.h
+
+Failed to parse type '...' original input ' ...'
+Found on line 2428 of input from line 2427 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxGetTaskAttribute function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 2536 of input from line 2535 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxGetChanAttribute function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 2537 of input from line 2536 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxSetChanAttribute function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 2560 of input from line 2559 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxGetTimingAttribute function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 2561 of input from line 2560 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxSetTimingAttribute function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 2564 of input from line 2563 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxGetTimingAttributeEx function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 2565 of input from line 2564 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxSetTimingAttributeEx function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 2589 of input from line 2588 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxGetTrigAttribute function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 2590 of input from line 2589 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxSetTrigAttribute function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 2641 of input from line 2640 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxGetReadAttribute function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 2642 of input from line 2641 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxSetReadAttribute function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 2677 of input from line 2676 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxGetWriteAttribute function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 2678 of input from line 2677 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxSetWriteAttribute function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 2692 of input from line 2691 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxGetExportedSignalAttribute function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 2693 of input from line 2692 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxSetExportedSignalAttribute function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 2708 of input from line 2707 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxGetScaleAttribute function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 2709 of input from line 2708 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxSetScaleAttribute function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 2721 of input from line 2720 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxSetBufferAttribute function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 2754 of input from line 2753 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxSetSwitchChanAttribute function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 2756 of input from line 2755 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxGetSwitchDeviceAttribute function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 2757 of input from line 2756 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxSetSwitchDeviceAttribute function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 2760 of input from line 2759 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxSetSwitchScanAttribute function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 2971 of input from line 2970 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxGetDeviceAttribute function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 2978 of input from line 2977 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxCreateWatchdogTimerTask function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 2986 of input from line 2985 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxGetWatchdogAttribute function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 2987 of input from line 2986 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxSetWatchdogAttribute function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 3015 of input from line 3014 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxGetCalInfoAttribute function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 3016 of input from line 3015 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxSetCalInfoAttribute function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 3207 of input from line 3206 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxGetPhysicalChanAttribute function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 3215 of input from line 3214 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxGetRealTimeAttribute function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 3216 of input from line 3215 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxSetRealTimeAttribute function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 3234 of input from line 3233 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxGetPersistedTaskAttribute function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 3235 of input from line 3234 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxGetPersistedChanAttribute function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 3236 of input from line 3235 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxGetPersistedScaleAttribute function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 3243 of input from line 3242 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxGetSystemInfoAttribute function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 3244 of input from line 3243 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxSetDigitalPowerUpStates function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 3245 of input from line 3244 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxGetDigitalPowerUpStates function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 3246 of input from line 3245 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxSetDigitalPullUpPullDownStates function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 3247 of input from line 3246 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxGetDigitalPullUpPullDownStates function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 3248 of input from line 3247 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxSetAnalogPowerUpStates function may be invalid.
+
+Failed to parse type '...' original input ' ...'
+Found on line 3250 of input from line 3249 of file C:\\Program Files (x86)\\National Instruments\\NI-DAQ\\DAQmx ANSI C Dev\\include\\NIDAQmx.h
+Error parsing argument for function DAQmxGetAnalogPowerUpStates function may be invalid.
+NIDAQmx_thunk_pcwin64.c
+   Creating library NIDAQmx_thunk_pcwin64.lib and object NIDAQmx_thunk_pcwin64.exp
+

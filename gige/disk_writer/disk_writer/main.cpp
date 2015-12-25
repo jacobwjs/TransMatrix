@@ -5,6 +5,7 @@
 #endif
 
 #include <iostream>
+#include <tchar.h>
 #include "gigesource.cpp"
 #include "diskwriter.h"
 
@@ -20,7 +21,8 @@ void main_sub_scope()
 
 	// Initialize camera
 	std::cout << "Camera: ";
-	resCam = cam.Initialize("192.168.20.2");
+	//resCam = cam.Initialize("192.168.20.2");
+	resCam = cam.Initialize("");
 
 	std::cout << resCam.GetCodeString();
 	std::cout << ". ";
@@ -38,8 +40,9 @@ void main_sub_scope()
 
 	// Connect disk writer
 	std::cout << "Disk writer: ";
-	resWriter = dw.Initialize("C:\\video.dat", (IImageQueue*)&cam, false);
-	
+	//resWriter = dw.Initialize(L"C:\\video.dat", (IImageQueue*)&cam, false);
+	resWriter = dw.Initialize(_T("C:\\Users\\admin\\Desktop\\Jacob\\video.dat"), (IImageQueue*)&cam, false);
+
 	if (!resWriter)
 	{
 		while (pErrorStr = dw.GetError())

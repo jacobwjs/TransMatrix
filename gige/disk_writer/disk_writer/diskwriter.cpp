@@ -1,4 +1,6 @@
+#include <tchar.h>
 #include "diskwriter.h"
+
 
 DiskWriter::DiskWriter()
 {
@@ -56,7 +58,7 @@ void DiskWriter::Shutdown()
 		WriterStopFlag = true;
 		DWORD WaitResult = WaitForSingleObject(WriterThread, 10000);
 		if (WaitResult != WAIT_OBJECT_0)
-			MessageBox(NULL, "Writer thread does not respond.", "Error", MB_OK | MB_ICONERROR);
+			MessageBox(NULL, _T("Writer thread does not respond."), _T("Error"), MB_OK | MB_ICONERROR);
 		CloseHandle(WriterThread);
 	}
 

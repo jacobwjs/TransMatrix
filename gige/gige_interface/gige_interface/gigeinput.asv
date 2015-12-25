@@ -233,11 +233,10 @@ classdef gigeinput < hgsetget
             end
         end
         
-        %------------------------------- JWJS --------------
+        
         function res = getDevInfo(vid)
-            res = vid.source.getdeviceinfo();
-        end
-        %-------------------------------------
+            res = vid.source.
+    
     end
     
 end

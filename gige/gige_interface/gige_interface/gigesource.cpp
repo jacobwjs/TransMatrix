@@ -4,7 +4,7 @@
 //  - Damien Loterie (11/2014)
 
 
-
+#include <tchar.h>
 #include "gigesource.h"
 
 
@@ -13,25 +13,23 @@ GigE_Source::GigE_Source()
 	ManagerThread = NULL;
 	ManagerSignal = NULL;
 
-	/// -------------- JWJS ------------------
-	lDevice = NULL;
-	lStream = NULL;
-	/// ---------------------
 }
 
 
 GigE_Source::~GigE_Source()
 {
 
+	if (lDevice != NULL)
+		delete lDevice;
 }
 
 PvResult GigE_Source::Initialize(const PvString camera_identifier)
 {
 	/// Initialize results variable
 	PvResult result;
-	const PvDeviceInfo *lDeviceInfo = NULL;
-
 	
+	/// ------------------ JWJS -------------------------------------------------
+
 	/// Find device
 	/// ------------------------------------------------------------------------------------ 
 	PvSystem * lPvSystem = new PvSystem;
@@ -72,6 +70,7 @@ PvResult GigE_Source::Initialize(const PvString camera_identifier)
 		
 		
 	}
+	/// ----------------------------------
 
 	/*
 	PvSystem lSystem;
@@ -138,7 +137,7 @@ void GigE_Source::Shutdown()
 		ManagerStopFlag = true;
 		DWORD WaitResult = WaitForSingleObject(ManagerThread, 10000);
 		if (WaitResult != WAIT_OBJECT_0)
-			MessageBox(NULL, "Manager thread does not respond.", "Error", MB_OK | MB_ICONERROR);
+			MessageBox(NULL, _T("Manager thread does not respond."), _T("Error"), MB_OK | MB_ICONERROR);
 		CloseHandle(ManagerThread);
 	}
 
@@ -430,6 +429,7 @@ PvResult GigE_Source::FlushImages()
 }
 
 
+/// ------------------ JWJS -------------------------------------------------
 const PvDeviceInfo * GigE_Source::SelectDevice(PvSystem * aPvSystem)
 {
 	const PvDeviceInfo * lDeviceInfo = NULL;
@@ -443,6 +443,8 @@ const PvDeviceInfo * GigE_Source::SelectDevice(PvSystem * aPvSystem)
 	return lDeviceInfo;
 }
 
+
+/// ------------------ JWJS -------------------------------------------------
 PvDevice * GigE_Source::ConnectToDevice(const PvDeviceInfo * aDeviceInfo)
 {
 	PvDevice * lDevice = NULL;
@@ -457,10 +459,14 @@ PvDevice * GigE_Source::ConnectToDevice(const PvDeviceInfo * aDeviceInfo)
 		cout << "Unable to connect to " << aDeviceInfo->GetDisplayID().GetAscii() << "." << endl;
 	}
 
+
+	
+
 	return lDevice;
 }
 
 
+/// ------------------ JWJS -------------------------------------------------
 PvStream * GigE_Source::OpenStream(const PvDeviceInfo * aDeviceInfo)
 {
 	PvStream * lStream = NULL;
@@ -478,6 +484,9 @@ PvStream * GigE_Source::OpenStream(const PvDeviceInfo * aDeviceInfo)
 	return lStream;
 }
 
+
+
+/// ------------------ JWJS -------------------------------------------------
 /// Most of the eBUS SDK (version > 4.0) abstracts the device information so there is no need
 /// to know which device type we are connecting to (GigE or USB3). However if we are working
 /// with a GigE device we need to configure the destination IP address and largest packet size.

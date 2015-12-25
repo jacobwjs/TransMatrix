@@ -18,7 +18,7 @@ start(source);
 
 % Trigger
 disp('Trigger...');
-addpath('../../../tm9');
+addpath('../../../tm11b');
 n_frames = 10;
 triggere('proximal', 1000, 5, n_frames);
 
@@ -32,6 +32,7 @@ triggere('proximal', 1000, 5, n_frames);
 
 % Wait for frame
 disp('Waiting for frame...');
+n_frames = 10;
 source.wait(n_frames, 5);
 disp(['Frames: ' int2str(getnumberofimages(source))]);
 

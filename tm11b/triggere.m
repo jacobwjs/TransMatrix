@@ -6,7 +6,14 @@ function triggere(DeviceID, ExposureTime, FramesPerSecond, Number, Sync)
     %  - Damien Loterie (02/2014)
       
     % Check the Device ID and find the corresponding digital channel
-	[~,~,CounterName] = camera2name(DeviceID);
+	%[~,~,CounterName] = camera2name(DeviceID);
+    %----------------------------- JWJS --------------
+    % No longer hard code the values in 'camera2name', but use the data
+    % acquisition toolbox from matlab to find the digital channel.
+    % 'DeviceID' is simple a string (i.e. proximal) that maps to a
+    % hardcoded value.
+    NI_daq = get(daq.getDevices());
+    CounterName = strcat(NI_daq(1).ID, '/ctr0');
     
     % Input processing
     narginchk(2,5);

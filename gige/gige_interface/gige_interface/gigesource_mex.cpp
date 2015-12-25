@@ -395,6 +395,58 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 		return;
 	}
 
+
+	/// -------------------------------- JWJS -----------------------------------
+	// Get number of buffer thread errors
+	if (!strcmp("GetDeviceInfo", cmd)) {
+		// Check parameters
+		if (nlhs > 1 || nrhs != 2)
+			mexErrMsgTxt("GetDeviceInfo: Unexpected arguments.");
+
+		// Get number
+		//size_t NumberOfErrors = GigE_instance->GetNumberOfErrors();
+
+		/// Create MATLAB array that will contain the device information strings.
+		/// We want IP, model, serial and MAC address.
+		size_t numberOfDeviceProperties = 4;
+		mxArray *mxStrArr = mxCreateCellMatrix((mwSize)numberOfDeviceProperties, 1);
+
+		/// Create the strings of the device info and save it to the cell array
+		mxSetCell(mxStrArr, (mwIndex)0, mxCreateString(GigE_instance->GetDeviceIP()));
+		mxSetCell(mxStrArr, (mwIndex)1, mxCreateString(GigE_instance->GetDeviceModelName()));
+		mxSetCell(mxStrArr, (mwIndex)2, mxCreateString(GigE_instance->GetDeviceSerialNumber()));
+		mxSetCell(mxStrArr, (mwIndex)3, mxCreateString(GigE_instance->GetDeviceMACAddress()));
+
+		/// Return the data.
+		plhs[0] = mxStrArr;
+
+		return;
+	}
+
+		//// Gather all the errors
+		//for (size_t i = 0; i < numberOfDeviceProperties; i++)
+		//{
+		//	// Pop error
+		//	std::unique_ptr<PvResult> pRes = GigE_instance->GetError();
+
+		//	// Check if pop was successful
+		//	if (!pRes)
+		//		mexErrMsgTxt("GetErrors: One of the errors could not be retrieved. Due to this problem, some of the errors were lost.");
+
+		//	// Make string
+		//	mxArray *mxStr = mxCreateString(GetPvString(*pRes));
+
+		//	// Save string to cell array
+		//	mxSetCell(mxStrArr, (mwIndex)i, mxStr);
+
+		//	// Clear
+		//	pRes.reset();
+		//}
+
+		//// Return
+		//plhs[0] = mxStrArr;
+		//return;
+
 	
 
     // Got here, so command not recognized

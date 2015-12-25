@@ -70,9 +70,26 @@ public:
 	PvStream	* OpenStream(const PvDeviceInfo * aDeviceInfo);
 	void		ConfigureStream(PvDevice * aDevice, PvStream * aStream);
 
+	PvString	GetDeviceIP(void)			{ return lDeviceInfo->GetConnectionID().GetAscii(); }
+	PvString	GetDeviceModelName(void)	{ return lDeviceInfo->GetModelName().GetAscii(); }
+	PvString	GetDeviceSerialNumber(void) { return lDeviceInfo->GetSerialNumber().GetAscii(); }
+	PvString	GetDeviceMACAddress(void)	{ return lDeviceInfo->GetUniqueID().GetAscii(); }
+	
+		/*<< lDeviceInfo->GetConnectionID().GetAscii() << endl	/// IP address
+		<< lDeviceInfo->GetModelName().GetAscii() << endl		/// Model number (e.g. MV1-D1312IE-100-G2-12)
+		<< lDeviceInfo->GetSerialNumber().GetAscii() << endl	/// Camera serial number (e.g. 024800016732)
+		<< lDeviceInfo->GetUniqueID().GetAscii() << endl;       /// MAC address of camera (e.g. 00:11:1c:f5:a9:b8)*/
+
+	/// ------------------------
+
 private:
-	PvDevice	* lDevice;
-	PvStream	* lStream;
+	PvDevice	* lDevice = NULL;
+	PvStream	* lStream = NULL;
+
+
+	/// ------------------ JWJS -------------------------------------------------
+	/// Holds all the information about the device we connect to.
+	const PvDeviceInfo *lDeviceInfo = NULL;
 
 	SPSC_Queue<PvBuffer> queue;
 	int64_t bufferSize;

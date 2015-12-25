@@ -118,6 +118,13 @@ classdef gigesource < hgsetget
         function res = geterrors(this)
            res = gigesource_mex('GetErrors', this.objectHandle);
         end
+        
+        %--------------------- JWJS -------------------------
+        % Get the device info (MAC, IP, etc.)
+        function res = getdeviceinfo(this)
+            res = gigesource_mex('GetDeviceInfo', this.objectHandle);
+        end
+        %---------------------------
 
 
     end
