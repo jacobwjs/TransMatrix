@@ -19,6 +19,12 @@ void main_sub_scope()
 
 	PvResult res = cam.Initialize("192.168.20.2");
 
+	if (!res.IsSuccess())
+	{
+		std::cout << "Error: Camera not initialized\n";
+		return;
+	}
+
 	std::cout << res.GetCodeString();
 	std::cout << "\n";
 	std::cout << res.GetDescription();

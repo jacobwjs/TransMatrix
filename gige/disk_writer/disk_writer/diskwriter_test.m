@@ -41,9 +41,9 @@ stop(source);
 
 % % Image
 disp('Getting image(s)');
-% frame = getlastimage(source);
+%frame = getlastimage(source);
 [frames, time] = getimages(source, n_frames);
-disp(['Frames gathered: ' int2str(size(frames,4))]);
+%disp(['Frames gathered: ' int2str(size(frames,4))]);
 disp(['Frames left: ' int2str(getnumberofimages(source))]);
 
 % Errors

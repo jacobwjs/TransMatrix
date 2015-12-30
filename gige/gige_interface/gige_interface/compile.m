@@ -14,7 +14,7 @@ include_args = {'-L"C:\Program Files (x86)\Pleora Technologies Inc\eBUS SDK\Libr
                 '-I"C:\Program Files (x86)\Pleora Technologies Inc\eBUS SDK\Includes"'};
            
 % Final parameters
-compile_args = [optim_args, include_args];
+compile_args = [optim_args, include_args, debug_args];
 
 % Compile
 disp('Compiling...');

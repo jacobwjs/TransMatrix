@@ -2,7 +2,7 @@
 %   - Damien Loterie (03/2015)
 
 % Includes
-addpath('../../../tm9');
+addpath('../../../tm11b');
 addpath('../../../dx11tut11_mod3/Engine/MATLAB');
 addpath('../../gige_interface/gige_interface');
 

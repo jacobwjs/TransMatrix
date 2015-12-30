@@ -1,3 +1,6 @@
+# Ignore matlab asv files
+*.asv
+
 # Ignore compiled mex files.
 *.mexw64
 

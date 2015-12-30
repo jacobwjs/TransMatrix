@@ -222,7 +222,9 @@ PvResult GigE_Source::Start()
 	// Lock parameters
 	PvCheck(lDeviceParams->SetIntegerValue("TLParamsLocked", 1));
 
-	// Start acquisition
+	// Enable streaming and send the AcquisitionStart command
+	cout << "Enabling streaming and sending AcquisitionStart command." << endl;
+	lDevice->StreamEnable();
 	PvCheck(lDeviceParams->ExecuteCommand("AcquisitionStart"), lDeviceParams->SetIntegerValue("TLParamsLocked", 0););
 
 	// Return success
@@ -469,19 +471,19 @@ PvDevice * GigE_Source::ConnectToDevice(const PvDeviceInfo * aDeviceInfo)
 /// ------------------ JWJS -------------------------------------------------
 PvStream * GigE_Source::OpenStream(const PvDeviceInfo * aDeviceInfo)
 {
-	PvStream * lStream = NULL;
+	PvStream * tempStream = NULL;
 	PvResult lResult;
 
 	// Open stream to GigE or USB3 Vision device.
 	cout << "Opening stream to device." << endl;
-	lStream = PvStream::CreateAndOpen(aDeviceInfo->GetConnectionID(), &lResult);
+	tempStream = PvStream::CreateAndOpen(aDeviceInfo->GetConnectionID(), &lResult);
 
 	if (!lResult.IsOK())
 	{
 		cout << "Unable to open stream from device " << aDeviceInfo->GetDisplayID().GetAscii() << "." << endl;
 	}
 
-	return lStream;
+	return tempStream;
 }
 
 

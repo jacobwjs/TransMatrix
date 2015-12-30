@@ -423,31 +423,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 		return;
 	}
 
-		//// Gather all the errors
-		//for (size_t i = 0; i < numberOfDeviceProperties; i++)
-		//{
-		//	// Pop error
-		//	std::unique_ptr<PvResult> pRes = GigE_instance->GetError();
-
-		//	// Check if pop was successful
-		//	if (!pRes)
-		//		mexErrMsgTxt("GetErrors: One of the errors could not be retrieved. Due to this problem, some of the errors were lost.");
-
-		//	// Make string
-		//	mxArray *mxStr = mxCreateString(GetPvString(*pRes));
-
-		//	// Save string to cell array
-		//	mxSetCell(mxStrArr, (mwIndex)i, mxStr);
-
-		//	// Clear
-		//	pRes.reset();
-		//}
-
-		//// Return
-		//plhs[0] = mxStrArr;
-		//return;
-
-	
 
     // Got here, so command not recognized
     mexErrMsgTxt("Command not recognized.");

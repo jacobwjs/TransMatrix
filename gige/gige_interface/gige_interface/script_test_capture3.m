@@ -17,7 +17,7 @@ while toc<minutes*60
 
    start(vid);
    set(vid,'TriggerSoftware');
-   vid.wait(1,5);
+   %vid.wait(1,5);
    frame = getimages(vid,1);
    stop(vid);
 
