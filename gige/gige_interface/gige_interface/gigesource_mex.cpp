@@ -398,7 +398,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
 	/// -------------------------------- JWJS -----------------------------------
 	// Get number of buffer thread errors
-	if (!strcmp("GetDeviceInfo", cmd)) {
+	if (!strcmp("GetDeviceInfo", cmd)) 
+	{
 		// Check parameters
 		if (nlhs > 1 || nrhs != 2)
 			mexErrMsgTxt("GetDeviceInfo: Unexpected arguments.");
@@ -422,6 +423,81 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
 		return;
 	}
+	/// -------------------------------------
+
+
+	/// -------------------------------- JWJS --------------------------------------
+	/// Display available devices and make a selection.
+	if (!strcmp("SelectDevice", cmd)) 
+	{
+
+		// Check parameters
+		if (nlhs != 0 || nrhs != 2)
+			mexErrMsgTxt("SelectDevice: Unexpected arguments.");
+
+		GigE_instance->lPvSystem->Find();
+
+		//// Detect, select device.
+		vector<const PvDeviceInfo *> lDIVector;
+		for (uint32_t i = 0; i < GigE_instance->lPvSystem->GetInterfaceCount(); i++)
+		{
+			const PvInterface *lInterface = dynamic_cast<const PvInterface *>(GigE_instance->lPvSystem->GetInterface(i));
+			if (lInterface != NULL)
+			{
+				//mexPrintf("Interface: %s\n", lInterface->GetDisplayID().GetAscii());
+				for (uint32_t j = 0; j < lInterface->GetDeviceCount(); j++)
+				{
+					const PvDeviceInfo *lDI = dynamic_cast<const PvDeviceInfo *>(lInterface->GetDeviceInfo(j));
+					if (lDI != NULL)
+					{
+						lDIVector.push_back(lDI);
+						mexPrintf("[%d]\t %s \n", lDIVector.size() - 1, lDI->GetDisplayID().GetAscii());
+					}
+				}
+			}
+		}
+
+		if (lDIVector.size() == 0)
+		{
+			mexPrintf("No device found!\n");
+		}
+
+		mexPrintf("[%d] to abort\n", lDIVector.size());
+		mexPrintf("[%d] to search again\n\n", (lDIVector.size() + 1));
+		
+		/// Get input from the user via the Matlab console.
+		mxArray *new_number, *str;
+		size_t lIndex = -1;
+		
+		str = mxCreateString("Enter your action or device selection: ");
+		mexCallMATLAB(1, &new_number, 1, &str, "input");
+		lIndex = mxGetScalar(new_number);
+		//mexPrintf("You entered: %d\n", lIndex);
+		mxDestroyArray(new_number);
+		mxDestroyArray(str);
+
+
+		// Read device selection, optional new IP address.
+		if (lIndex == lDIVector.size())
+		{
+			// We abort the selection process.
+			return;
+		}
+		else if (lIndex < lDIVector.size())
+		{
+			// The device is selected
+			///lSelectedDI = lDIVector[lIndex];
+			GigE_instance->AssignPvDeviceInfo(lDIVector[lIndex]);
+			return;
+		}
+		
+				/// Should not make it here if the above conditions are met.
+		return;
+	}
+	/// --------------------------------------
+
+
+
 
 
     // Got here, so command not recognized

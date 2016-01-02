@@ -4,10 +4,15 @@ function [reference_mean, reference_std, background_mean, background_std] = ...
        
     % Check camera
     source = vid.source;
-    [~, DeviceID] = camera2name('distal');
-    if ~strcmp(get(source,'DeviceID'), DeviceID)
-        error('This function is designed for the distal-side camera. To use another camera, the shutters must be coded differently.');
-    end 
+    % --------------------------------------- JWJS ----------------
+    DeviceID = source.deviceInfo.ID;
+    fprintf('Measuring reference for camera: %s (ID=%s)\n',...
+            source.name,...
+            source.deviceInfo.ID);
+%     if ~strcmp(get(source,'DeviceID'), DeviceID)
+%         error('This function is designed for the distal-side camera. To use another camera, the shutters must be coded differently.');
+%     end 
+    % ---------------------------------------------
     
     % Close proximal shutter
     shutter('proximal','block');

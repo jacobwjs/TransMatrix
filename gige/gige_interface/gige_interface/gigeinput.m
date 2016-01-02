@@ -25,7 +25,7 @@ classdef gigeinput < hgsetget
     
     methods
         % Constructor
-        function vid = gigeinput(camera_identifier)            
+        function vid = gigeinput(camera_identifier)
             vid.source = gigesource(camera_identifier);
             vid.Timeout = 10;
             vid.UserData = [];
@@ -234,7 +234,7 @@ classdef gigeinput < hgsetget
         end
         
         %------------------------------- JWJS --------------
-        function res = getDevInfo(vid)
+        function res = getDeviceInfo(vid)
             res = vid.source.getdeviceinfo();
         end
         %-------------------------------------

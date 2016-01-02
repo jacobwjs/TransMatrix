@@ -59,9 +59,15 @@ function shutter(name, state)
 %     disp(['Please ' str_manual ' ' name ', and then press any key.']);
 %     pause
     
-    % Open session
-    deviceID = 'Dev1';
+    % --------------------------------- JWJS -----------------
+    % Open session using Matlab's data acquisition toolbox.
+    daqDevice = get(daq.getDevices());
+    deviceID = strcat(daqDevice(1).ID);
+    % ---------------------------------------
     s = daq.createSession('ni');
+    
+     
+    
 
     % Open channels
     warning('off','daq:Session:onDemandOnlyChannelsAdded');

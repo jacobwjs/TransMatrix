@@ -54,7 +54,10 @@ function frames = getsnapshotse(vid, exposure, n, sync)
     end
     
     % Configure pulses
-	[~,~,CounterName] = camera2name(get(source,'DeviceID'));
+    % --------------------------------------- JWJS ---------------------
+    daqDevice = get(daq.getDevices());
+    CounterName = strcat(daqDevice(1).ID, '/ctr0');
+    % ---------------------------------------------
     HighTimes = exposure/1e6;
     ctr = DAQmxCounterOutput(CounterName, ...
                              HighTimes(1), ...

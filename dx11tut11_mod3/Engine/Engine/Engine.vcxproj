@@ -79,6 +79,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
+    <IncludePath>$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSDK_IncludePath)</IncludePath>
+    <LibraryPath>$(VCInstallDir)lib;$(VCInstallDir)atlmfc\lib;$(WindowsSDK_LibraryPath_x86)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
@@ -125,7 +127,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;ENABLE_TRIGGERING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <AdditionalIncludeDirectories>C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include; C:\Program Files (x86)\National Instruments\NI-DAQ\DAQmx ANSI C Dev\include</AdditionalIncludeDirectories>
-      <AdditionalUsingDirectories>C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include</AdditionalUsingDirectories>
+      <AdditionalUsingDirectories>C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\IncludeC:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include; C:\Program Files (x86)\National Instruments\NI-DAQ\DAQmx ANSI C Dev\include; C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include</AdditionalUsingDirectories>
       <DisableSpecificWarnings>4005;4995</DisableSpecificWarnings>
     </ClCompile>
     <Link>

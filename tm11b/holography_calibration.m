@@ -22,7 +22,10 @@ function [params, frame_ROI, frame] = holography_calibration(varargin)
     switch numel(varargin)
         case 1
             vid = varargin{1};
-            DeviceName = camera2name(get(vid.source,'DeviceID'));
+            % --------------------------------- JWJS -----------------
+            DeviceName = vid.source.name;
+            %DeviceName = camera2name(get(vid.source,'DeviceID'));
+            % ---------------------------------------
         case 3
             img = varargin{1};
             Fimg = varargin{2};
@@ -176,9 +179,9 @@ function [params, frame_ROI, frame] = holography_calibration(varargin)
         
     % Output parameters
     params = struct();
-    params.DeviceName = DeviceName;
-    params.ROI = ROI;
-    params.exposure = exposure;
+    params.DeviceName   = DeviceName;
+    params.ROI          = ROI;
+    params.exposure     = exposure;
     params.fiber.x      = fiber.xc_ROI;
     params.fiber.y      = fiber.yc_ROI;
     params.fiber.r1     = fiber.r1;

@@ -13,14 +13,28 @@ GigE_Source::GigE_Source()
 	ManagerThread = NULL;
 	ManagerSignal = NULL;
 
+	/// ------------------------------ JWJS -------------------------
+	lPvSystem = new PvSystem;
+	/// -------------------------------------
+
 }
 
 
 GigE_Source::~GigE_Source()
 {
-
+	/// -------------------------------------- JWJS --------------------
 	if (lDevice != NULL)
+	{
 		delete lDevice;
+		lDevice = NULL;
+	}
+
+	if (lPvSystem != NULL)
+	{
+		delete lPvSystem;
+		lPvSystem = NULL;
+	}
+	/// ---------------------------------------------
 }
 
 PvResult GigE_Source::Initialize(const PvString camera_identifier)
@@ -30,12 +44,29 @@ PvResult GigE_Source::Initialize(const PvString camera_identifier)
 	
 	/// ------------------ JWJS -------------------------------------------------
 
-	/// Find device
+	/// Ensure a device has been selected.
+	/// NOTE:
+	///  - 'lDeviceInfo' should never be NULL if called from Matlab (via mex). If we make it
+	///    here from Matlab and 'lDeviceInfo' is NULL the device discovery failed.
 	/// ------------------------------------------------------------------------------------ 
-	PvSystem * lPvSystem = new PvSystem;
-	lDeviceInfo = SelectDevice(lPvSystem);
+	if ((lDeviceInfo == NULL) && 
+		(camera_identifier.GetLength() == 0))
+	{
+		/// If the user didn't provide a 'camera_identifier' and had not previously 
+		/// selected a device, then provide a list of all potential devices via the 
+		/// commandline and get the users choice.
+		lDeviceInfo = SelectDevice(lPvSystem);
+	}
+	else if ((lDeviceInfo == NULL) &&
+		(camera_identifier.GetLength() != 0))
+	{
+		/// No selection has been previously made, but the user provided which device
+		/// to select.
+		PvCheck(lPvSystem->FindDevice(camera_identifier, &lDeviceInfo), Shutdown(););
+	}
 
-	
+
+	/// We assume a suitable device has been selected if we make it here.
 	if (lDeviceInfo != NULL)
 	{
 		/// Basic error checking for the IP configuration.
@@ -444,6 +475,7 @@ const PvDeviceInfo * GigE_Source::SelectDevice(PvSystem * aPvSystem)
 
 	return lDeviceInfo;
 }
+/// ------------------------
 
 
 /// ------------------ JWJS -------------------------------------------------
@@ -466,6 +498,7 @@ PvDevice * GigE_Source::ConnectToDevice(const PvDeviceInfo * aDeviceInfo)
 
 	return lDevice;
 }
+/// ------------------------
 
 
 /// ------------------ JWJS -------------------------------------------------
@@ -485,7 +518,7 @@ PvStream * GigE_Source::OpenStream(const PvDeviceInfo * aDeviceInfo)
 
 	return tempStream;
 }
-
+/// ------------------------
 
 
 /// ------------------ JWJS -------------------------------------------------
@@ -510,3 +543,4 @@ void GigE_Source::ConfigureStream(PvDevice * aDevice, PvStream * aStream)
 		lDeviceGEV->SetStreamDestination(lStreamGEV->GetLocalIPAddress(), lStreamGEV->GetLocalPort());
 	}
 }
+/// ------------------------

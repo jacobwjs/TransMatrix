@@ -5,6 +5,10 @@ function vid = camera_mex(name, trigger_type)
     %
     % - Damien Loterie (11/2014)
 
+    % -------------------------------- JWJS ----------------
+    addpath('../gige/gige_interface/gige_interface');
+    % --------------------------------------
+    
     % Check input
     narginchk(1,2);
     if nargin>=2
@@ -13,12 +17,10 @@ function vid = camera_mex(name, trigger_type)
         end
     end
 
-    % Translate name
-    [~,~,~,MAC] = camera2name(name);
-    
+    % -------------------------------- JWJS ----------------
     % Initialize camera
-    addpath('../gige/gige_interface/gige_interface');
-    vid = gigeinput(MAC);
+    vid = gigeinput(name);
+    % --------------------------------------
     source = vid.source;
 
     % Image parameters
