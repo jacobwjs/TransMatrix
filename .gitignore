@@ -291,3 +291,5 @@ $RECYCLE.BIN/
 *.lnk
 dx11tut11_mod3/Engine/MATLAB/dx_engine_errors.txt
 tm11b/DAQmxLibrary_warnings.txt
+tm11b/video.transposed.dat
+*.dat
