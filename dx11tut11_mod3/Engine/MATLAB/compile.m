@@ -12,7 +12,7 @@ debug_args = {'-g'};
 include_args = {};
            
 % Final parameters
-compile_args = [optim_args, include_args];
+compile_args = [optim_args, include_args, debug_args];
             
 % Compile
 disp('Compiling...');

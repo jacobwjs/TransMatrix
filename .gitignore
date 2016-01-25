@@ -1,4 +1,7 @@
-# Ignore matlab asv files
+# Ignore data files due to size.
+tm11b/data/*
+
+# Ignore matlab asv files.
 *.asv
 
 # Ignore compiled mex files.
@@ -286,3 +289,5 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+dx11tut11_mod3/Engine/MATLAB/dx_engine_errors.txt
+tm11b/DAQmxLibrary_warnings.txt

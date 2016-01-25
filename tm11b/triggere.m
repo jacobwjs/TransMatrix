@@ -5,13 +5,16 @@ function triggere(DeviceID, ExposureTime, FramesPerSecond, Number, Sync)
     % MATLAB.
     %  - Damien Loterie (02/2014)
       
+    
+    % ----------------------------- JWJS --------------
     % Check the Device ID and find the corresponding digital channel
 	%[~,~,CounterName] = camera2name(DeviceID);
-    %----------------------------- JWJS --------------
+    
     % No longer hard code the values in 'camera2name', but use the data
-    % acquisition toolbox from matlab to find the digital channel.
+    % acquisition toolbox from matlab to find the device ID.
     NI_daq = get(daq.getDevices());
     CounterName = strcat(NI_daq(1).ID, '/ctr0');
+    % ----------------------------------
     
     % Input processing
     narginchk(2,5);
@@ -51,7 +54,12 @@ function triggere(DeviceID, ExposureTime, FramesPerSecond, Number, Sync)
         
     % Synchronized pulses
     if (Sync)
+        % ----------------------- JWJS -----------------------
+        % vsync_channel() simply returned a hard coded value of the DAQ
+        % device (i.e. /Dev1/PFI9). It has been updated to select the
+        % proper DAQ device ID based on attached hardware.
         ctr.CfgDigEdgeStartTrig(vsync_channel, 'falling');
+        % -----------------------------
     end
 
     % Generate

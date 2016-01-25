@@ -15,16 +15,24 @@ function [reference_mean, reference_std, background_mean, background_std] = ...
     % ---------------------------------------------
     
     % Close proximal shutter
-    shutter('proximal','block');
-    shutter('distal','open');
+    % ---------------------------------------- JWJS ----------
+    %shutter('proximal','block');
+    %shutter('distal','open');
+    display('Block the object path (fiber), and open the reference path ');
+    [temp] = input('Press Enter to acquire ');
+    % ----------------------------------------------
 
     % Measure reference beam
     reference_stack = double(getsnapshotse(vid, exposure, 25));
     reference_mean = mean(reference_stack, 4);
     reference_std = std(reference_stack, 0, 4);
     
-    % Close distal shutter
-    shutter('distal','block');
+    % Close distal shutter (which is the reference arm).
+    % ---------------------------------------- JWJS ----------
+    %shutter('distal','block');
+    display('Block both paths (object & reference)');
+    [temp] = input('Press Enter to acquire ');
+    % ----------------------------------------------
 
     % Measure reference beam
     background_stack = double(getsnapshotse(vid, exposure, 25));
@@ -32,7 +40,11 @@ function [reference_mean, reference_std, background_mean, background_std] = ...
     background_std = std(background_stack, 0, 4);
 
     % Reopen shutters
-    shutter('both','pass');
+    %shutter('both','pass');
+    % ---------------------------------------- JWJS ----------
+    display('Open both paths (object & reference)');
+    [temp] = input('Press Enter to continue... ');
+    % ----------------------------------------------
     
 end
 

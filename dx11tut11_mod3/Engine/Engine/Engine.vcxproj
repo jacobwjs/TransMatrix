@@ -91,7 +91,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;NOTENABLE_TRIGGERING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;ENABLE_TRIGGERING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include; C:\Program Files (x86)\National Instruments\NI-DAQ\DAQmx ANSI C Dev\include</AdditionalIncludeDirectories>
       <AdditionalUsingDirectories>C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\IncludeC:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include; C:\Program Files (x86)\National Instruments\NI-DAQ\DAQmx ANSI C Dev\include; C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include</AdditionalUsingDirectories>
       <DisableSpecificWarnings>4005;4995</DisableSpecificWarnings>

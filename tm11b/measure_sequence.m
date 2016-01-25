@@ -39,6 +39,7 @@ function metadata = measure_sequence(d, ...
     % configuration will be updated; if this is done during the measurement, it
     % could take too much time and frames would be dropped)
     d.show(sequence_function(1));
+    
     for i=1:numel(vids)
         getdata(vids{i},1);
     end
@@ -76,8 +77,8 @@ function metadata = measure_sequence(d, ...
     disp('Measuring...');
     tic_acq = tic;
     frames_available = 0;
-    stall_counter = 0;
-    loop_counter = 0;
+    stall_counter    = 0;
+    loop_counter     = 0;
     progress(0,number_of_frames);
     
     % Waiting loop

@@ -26,9 +26,12 @@
 // CONSTANTS //
 ///////////////
 #define PULSE_CHANNEL "pulse0"
-#define PULSE_DEVICE  "Dev1/ctr0"
-#define PULSE_TRIGGER "/Dev1/PFI9"
-
+//#define PULSE_DEVICE  "Dev1/ctr0"
+//#define PULSE_TRIGGER "/Dev1/PFI9"
+/// ------------------------------------------ JWJS ----------------------------
+#define PULSE_DEVICE  "Dev2/ctr0"
+#define PULSE_TRIGGER "/Dev2/PFI9"
+/// ------------------------------------------------
 
 ////////////////////////////////////////////////////////////////////////////////
 // Class name: PulseClass

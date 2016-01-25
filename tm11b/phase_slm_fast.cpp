@@ -8,6 +8,10 @@
 #define PI 3.141592653589793
 #define uint32_t unsigned int
 
+float fast_atan2( float y, float x );
+//float round(float x);
+void convert(float *x, float *y, unsigned char *v, int n);
+
 float fast_atan2( float y, float x )
 {
 	static const uint32_t sign_mask = 0x80000000;
@@ -30,10 +34,10 @@ float fast_atan2( float y, float x )
 	return q + (float &)uatan_2q;
 }
 
-float round(float x)
-{
-   return x >= 0.0 ? floor(x + 0.5) : ceil(x - 0.5);
-}
+// float round(float x)
+// {
+//    return x >= 0.0 ? floor(x + 0.5) : ceil(x - 0.5);
+// }
 	
 
 void convert(float *x, float *y, unsigned char *v, int n)

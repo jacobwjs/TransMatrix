@@ -491,7 +491,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 			return;
 		}
 		
-				/// Should not make it here if the above conditions are met.
+		
+		/// Should not make it here if the above conditions are met.
 		return;
 	}
 	/// --------------------------------------

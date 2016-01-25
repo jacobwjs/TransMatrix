@@ -10,7 +10,7 @@ function [experiments, speckle_ref] = patterns_measure(vid, ...
           
 
     % Reconfigure system
-    shutter('both','pass');
+    %shutter('both','pass');
     
     d.setConfig('pulseEnable', false);
     
@@ -45,7 +45,12 @@ function [experiments, speckle_ref] = patterns_measure(vid, ...
     
     
     % Record intensities
-    shutter('distal','block');
+    % ---------------------------------------- JWJS ----------
+    %shutter('distal','block');
+    display('Block reference path');
+    [temp] = input('Press Enter to acquire \n');
+    % ----------------------------------------------
+    
     disp('Recording intensities...');
     for i=1:numel(experiments)
         % Show on SLM
@@ -79,7 +84,11 @@ function [experiments, speckle_ref] = patterns_measure(vid, ...
     speckle_ref.I_exposure = exposure_value;
     
     % Record background images with the same exposure levels (fixed pattern noise)
-    shutter('both','block');
+    % --------------------------------------------- JWJS ---------
+    %shutter('both','block');
+    display('Block reference and object paths');
+    [temp] = input('Press Enter to acquire \n');
+    % ----------------------------------------------
     disp('Recording background...');
     for i=1:numel(experiments)
         experiments(i).I_bg = getsnapshote(vid, experiments(i).I_exposure);
@@ -91,7 +100,10 @@ function [experiments, speckle_ref] = patterns_measure(vid, ...
     stop(vid);
     
     % Open shutters again
-    shutter('both','open');
-
+    % --------------------------------------------- JWJS ---------
+    %shutter('both','open');
+    display('Open both reference and object paths');
+    [temp] = input('Press Enter to continue \n');
+    % ----------------------------------------------
 end
 

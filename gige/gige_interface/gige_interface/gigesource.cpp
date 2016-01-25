@@ -2,6 +2,11 @@
 // them in memory. This happens in a dedicated high-priority thread, to avoid
 // frame drops. There is a basic error reporting mechanism.
 //  - Damien Loterie (11/2014)
+//
+// Update 12/2015 (Jacob Staley)
+//  - The gigesource class has been updated to work with the latest version of 
+//    the eBUS SDK, which abstracts the connection process and allows interfacing
+//    with various connection protocols (GigE Vision, USB3 Vision, and GenICam).
 
 
 #include <tchar.h>
@@ -69,11 +74,6 @@ PvResult GigE_Source::Initialize(const PvString camera_identifier)
 	/// We assume a suitable device has been selected if we make it here.
 	if (lDeviceInfo != NULL)
 	{
-		/// Basic error checking for the IP configuration.
-		if (!lDeviceInfo->IsConfigurationValid())
-		{
-			return PvResult(PvResult::Code::NETWORK_ERROR, PvString("ERROR. The camera's IP configuration is invalid."));
-		}
 
 		/// Connect to the vision device (GigE or USB3).
 		/// --------------------------------------------------------------------------------
@@ -95,6 +95,11 @@ PvResult GigE_Source::Initialize(const PvString camera_identifier)
 			return PvResult(PvResult::Code::GENERIC_ERROR, PvString("ERROR. OpenStream() failure."));
 		}
 
+
+		/// Configure the stream that was opened.
+		/// --------------------------------------------------------------------------------
+		ConfigureStream();
+
 		/// Manage buffers.
 		/// --------------------------------------------------------------------------------
 		lDeviceParams = lDevice->GetParameters();
@@ -103,35 +108,7 @@ PvResult GigE_Source::Initialize(const PvString camera_identifier)
 	}
 	/// ----------------------------------
 
-	/*
-	PvSystem lSystem;
-	PvCheck(lSystem.FindDevice(*camera_identifier, &lDeviceInfo), Shutdown(););
-
-	// Check IP configuration
-	if (!lDeviceInfo->IsConfigurationValid())
-		return PvResult(PvResult::Code::NETWORK_ERROR, PvString("The camera's IP configuration is invalid."));
-
-	// Connect to device
-	PvCheck(lDevice.Connect(lDeviceInfo->GetIPAddress()), Shutdown(););
-
-	// Negotiate streaming packet size
-	PvCheck(lDevice.NegotiatePacketSize(), Shutdown(););
-
-	// Get parameter array
-	lDeviceParams = lDevice.GetGenParameters();
-
-	////////////
-	// STREAM //
-	////////////
-	// Open stream
-	PvCheck(lStream.Open(lDeviceInfo->GetIPAddress(), 0, 0, "", PVSTREAM_NUM_BUFFERS), Shutdown(););
-
-	// Configure the device IP destination to the stream
-	PvCheck(lDevice.SetStreamDestination(lStream.GetLocalIPAddress(), lStream.GetLocalPort()), Shutdown(););
-
-	*/
-
-
+	
 	////////////////////
 	// BUFFER MANAGER //
 	////////////////////
@@ -526,19 +503,19 @@ PvStream * GigE_Source::OpenStream(const PvDeviceInfo * aDeviceInfo)
 /// to know which device type we are connecting to (GigE or USB3). However if we are working
 /// with a GigE device we need to configure the destination IP address and largest packet size.
 /// These requirements are taken care of below.
-void GigE_Source::ConfigureStream(PvDevice * aDevice, PvStream * aStream)
+void GigE_Source::ConfigureStream()
 {
 	/// If we are working with a GigE Vision (GEV) device we configure GigE specific streaming params.
 	/// Otherwise (USB3) nothing needs to be done.
 	
 	/// Use a dynamic cast to determine if the 'PvDevice' object represents a GigE device.
-	PvDeviceGEV * lDeviceGEV = dynamic_cast<PvDeviceGEV *>(aDevice);
+	PvDeviceGEV * lDeviceGEV = dynamic_cast<PvDeviceGEV *>(lDevice);
 	
 	if (lDeviceGEV != NULL)
 	{
 		/// If we're here we know we're working with a GigE device, so make a static cast,
 		/// negotiate the packet size, and configure the device streaming destination.
-		PvStreamGEV * lStreamGEV = static_cast<PvStreamGEV *>(aStream);
+		PvStreamGEV * lStreamGEV = static_cast<PvStreamGEV *>(lStream);
 		lDeviceGEV->NegotiatePacketSize();
 		lDeviceGEV->SetStreamDestination(lStreamGEV->GetLocalIPAddress(), lStreamGEV->GetLocalPort());
 	}

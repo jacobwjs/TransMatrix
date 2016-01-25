@@ -1,0 +1,28 @@
+/// Open issues
+Using script 'script_tm10.m' from Damien to fully test all integrated components and test updated code for using the latest eBUS SDK. 
+
+
+/// ------------------------------------------------------------- ISSUE 1 ------------------------
+The following error is encountered from running the script,
+
+Error using fftprocessor_mex
+WaitImages: Timeout.
+
+Error in fftprocessor/wait (line 121)
+                fftprocessor_mex('WaitImages', this.objectHandle, n, timeout_seconds);
+
+Error in fftprocessor/getdata (line 134)
+            this.wait(this.Timeout, n);
+
+Error in measure_sequence (line 43)
+        getdata(vids{i},1);
+
+Error in script_tm10 (line 149)
+measurement_stats = measure_sequence(d, ...
+
+
+It seems 'getdata(...)' does not trigger the camera, and there is a timeout while waiting for the image.
+Running the script in debug mode and calling 'triggere(...)' before executing 'getdata(...)' to generate a hardware
+fixes the problem. Not sure how Damien didn't encounter this before. Why not?
+/// ------------------------------------------------------------- 
+ 

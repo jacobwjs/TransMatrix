@@ -15,7 +15,8 @@ name_of_script = mfilename;
 %% Calibration (configure fullscreen, camera and holography)
 % Load proximal-side calibration data
 % slm_params = slm_getcal();
-slm_params = slm_getcal('ROISize',[960 960]);
+%slm_params = slm_getcal('ROISize',[960 960]);
+slm_params = slm_getcal('ROISize',[1024 1024]);
 
 % Check grid size
 fft_size_check(slm_params.ROI(3));
@@ -27,6 +28,12 @@ end
 disp(['Input mask:  ' int2str(sum(slm_params.freq.mask1(:))) ' pixels (r=' int2str(slm_params.freq.r1) ')']);
 disp(['Input ROI:   ' int2str(slm_params.ROI(3)) 'x' int2str(slm_params.ROI(4))]);
 
+% For testing purposes.
+% tm_inspect_fringes;
+% slm_params.freq.x = first_order.center_x;
+% slm_params.freq.y = first_order.center_y;
+slm_params.freq.x = 206;
+slm_params.freq.y = 870;
 
 % Create a calibration frame
 calibration_frame = modulation_slm(slm_params.ROI(3), ...
@@ -38,7 +45,11 @@ calibration_frame = modulation_slm(slm_params.ROI(3), ...
 % Fullscreen startup parameters
 [x_slm, y_slm] = slm_size();
 
-% Open fullscreen window
+% Find the x and y coordinates to center the phase map on the slm.
+slm_params.ROI(1) = round(x_slm/2) - round(slm_params.ROI(3)/2);
+slm_params.ROI(2) = round(y_slm/2) - round(slm_params.ROI(4)/2);
+
+% % Open fullscreen window
 addpath(dx_fullscreen_path);
 dx_options = struct('monitor',      1,...
                     'screenWidth',  x_slm,...
@@ -50,9 +61,27 @@ dx_options = struct('monitor',      1,...
                     'renderPosX',   slm_params.ROI(1),...
                     'renderPosY',   slm_params.ROI(2));
 d = dx_fullscreen(dx_options);
+d.show(calibration_frame');
+
+% Retreive the slm image obtained from Holoeye software for testing.
+% holoeye_frame = imread('../holoeye_grating.png');
+% holoeye_frame = holoeye_frame(1:960,1:960);
+% Open fullscreen window
+% addpath(dx_fullscreen_path);
+% dx_options = struct('monitor',      1,...
+%                     'screenWidth',  x_slm,...
+%                     'screenHeight', y_slm,...
+%                     'frameWidth',   x_slm,...
+%                     'frameHeight',  y_slm,...
+%                     'renderWidth',  x_slm,...
+%                     'renderHeight', y_slm,...
+%                     'renderPosX',   0,...
+%                     'renderPosY',   0);
+% d = dx_fullscreen(dx_options);
 
 % Show the calibration frame
-d.show(calibration_frame);
+%d.show(calibration_frame);
+%d.show(holoeye_frame);
 
 % Initialize camera
 vid = camera_mex('distal','ElectronicTrigger');
@@ -68,6 +97,7 @@ disp(['Output ROI:  ' int2str(holo_params.ROI(3)) 'x' int2str(holo_params.ROI(4)
 disp(['Exposure:    ' num2str(round(holo_params.exposure)) 'us']);
 
 % Check grid size
+
 fft_size_check(holo_params.ROI(3));
 if holo_params.ROI(3)~=holo_params.ROI(4)
     fft_size_check(holo_params.ROI(4));
@@ -121,19 +151,25 @@ end
 
 % warning('Skipping background correction...');
 % Take a picture of the reference wave and background, for control.
-disp('Recording reference wave and background by closing each shutter.');
+% ------------------------------------------ JWJS ------------------------
+disp('Begin recording reference wave and background:');
 [reference_mean, reference_std, background_mean, background_std] = ...
            measure_reference(vid, holo_params.exposure);
 
+
 % Test for the misplaced shutter error
-if mean(abs(camera_to_output(reference_mean)).^2)>100
-   error('Possible malfunction in the proximal shutter. Background correction will fail.'); 
-end
+% if mean(abs(camera_to_output(reference_mean)).^2)>100
+%    error('Possible malfunction in the proximal shutter. Background correction will fail.'); 
+% end
        
 % Setup disk writer
 addpath('../gige/disk_writer/disk_writer/');
-dump_path = 'C:\video.transposed.dat';
+% ---------------------------------------- JWJS ----------------
+%dump_path = 'C:\video.transposed.dat';
+dump_path = [pwd, 'data\video.transposed.dat'];
+fprintf('Writing to %s\n', dump_path);
 dw = diskwriter(dump_path, vid, true);
+% ----------------------------------------------
 
 % Setup FFT processor
 addpath('../gige/fft_processor/fft_processor/');

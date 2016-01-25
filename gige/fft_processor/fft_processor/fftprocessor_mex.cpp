@@ -137,7 +137,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
 		// Create MATLAB time array
 		mxArray*  mxTime = mxCreateNumericMatrix((int)NumberOfFrames, 1, mxUINT64_CLASS, mxREAL);
-		PvUInt64*  pTime = (PvUInt64*)mxGetData(mxTime);
+		uint64_t*  pTime = (uint64_t*)mxGetData(mxTime);
 
 		// Transfer first frame
 		for (size_t i = 0; i < NumberOfElements; i++)

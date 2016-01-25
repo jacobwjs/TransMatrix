@@ -68,9 +68,9 @@ public:
 	PvSystem * lPvSystem = NULL;
 
 	const PvDeviceInfo * SelectDevice(PvSystem * aPvSystem);
-	PvDevice	* ConnectToDevice(const PvDeviceInfo * aDeviceInfo);
-	PvStream	* OpenStream(const PvDeviceInfo * aDeviceInfo);
-	void		ConfigureStream(PvDevice * aDevice, PvStream * aStream);
+	PvDevice  * ConnectToDevice(const PvDeviceInfo * aDeviceInfo);
+	PvStream  * OpenStream(const PvDeviceInfo * aDeviceInfo);
+	void		ConfigureStream(void);
 
 	PvString	GetDeviceIP(void)			{ return lDeviceInfo->GetConnectionID().GetAscii(); }
 	PvString	GetDeviceModelName(void)	{ return lDeviceInfo->GetModelName().GetAscii(); }
