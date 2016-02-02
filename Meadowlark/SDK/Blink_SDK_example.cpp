@@ -3,6 +3,7 @@
 
 #include "stdafx.h"  // Does nothing but #include targetver.h.
 
+#include <windows.h>
 #include <vector>
 #include <cstdio>
 #include <conio.h>
@@ -178,6 +179,66 @@ static bool Precalculate_and_loop(const uchar_vec& ramp1,
 }
 
 
+/// ------------------------------------------ JWJS ---------------------------
+/// My testing routines
+static bool test_write_image(const uchar_vec& ramp1,
+							 const uchar_vec& ramp2,
+							 const uchar_vec& calibration,
+							 const int board_number,
+							 Blink_SDK& sdk)
+{
+	puts("\nTesting write image: Press any key to exit.\n");
+	fflush(NULL);
+
+	bool okay = true;
+	unsigned int i = 0;
+
+	bool overdrive = sdk.Is_overdrive_available();
+	if (overdrive)
+	{
+		const char* const  regional_lut_file = "slm3260_regional.txt";
+		okay = sdk.Load_overdrive_LUT_file(regional_lut_file);
+	}
+	
+
+	while ((okay) && (!_kbhit()))
+	{
+		// Allow multiple consecutive frames of each image.
+		enum { e_n_consecutive = 1 };
+		unsigned int j = 0;
+		const unsigned char* image1 = ramp1.data();
+		const unsigned char* image2 = ramp2.data();
+		while ((okay) && (j < (2 * e_n_consecutive)))
+		{
+			//okay = sdk.Write_image(board_number, image1, 512, false, false);
+			++j;
+			
+			okay = sdk.Write_overdrive_image(board_number, calibration.data(), 0, 0);
+			//Sleep(1000);
+			okay = sdk.Write_image(board_number, image2, 512, false, false);
+			//Sleep(1000);
+		}
+		// Next two lines look a lot simpler, for case of alternating images.
+		//okay = sdk.Write_overdrive_image(board_number, ramp1.data()) &&
+		//       sdk.Write_overdrive_image(board_number, ramp2.data());
+		++i;
+		if (!(i % 50))
+		{
+			printf("Completed cycles: %u\r", i);
+		}
+	}
+
+	if (okay)     // Loop terminated because of a keystroke?
+	{
+		Consume_keystrokes();
+	}
+
+	return okay;
+
+}
+/// -------------------------------------------
+
+
 // -------------------- main --------------------------------------------------
 // Simple example using the Blink_SDK DLL to send a sequence of phase targets
 // to a single 512x512 SLM.
@@ -194,60 +255,77 @@ static bool Precalculate_and_loop(const uchar_vec& ramp1,
 // ----------------------------------------------------------------------------
 int main(const int argc, char* const argv[])
 {
-  // Decide whether we will pre-calculate the overdrive frames, or calculate
-  // them on the fly.
-  const bool pre_calculate = ((argc > 1) && (strtol(argv[1], 0, 10) == 1)) ?
-                             true : false;
+	// Decide whether we will pre-calculate the overdrive frames, or calculate
+	// them on the fly.
+	/*const bool pre_calculate = ((argc > 1) && (strtol(argv[1], 0, 10) == 1)) ?
+	true : false;*/
+	const bool pre_calculate = false;
 
-  const int board_number = 1;
+	const int board_number = 1;
 
-  // Construct a Blink_SDK instance with Overdrive capability.
+	// Construct a Blink_SDK instance with Overdrive capability.
 
-  const unsigned int bits_per_pixel  = 8U;
-  const unsigned int pixel_dimension = 512U;
-  const bool         is_nematic_type      = true;
-  const bool         RAM_write_enable     = true;
-  const bool         use_GPU_if_available = true;
-  const char* const  regional_lut_file = "SLM_regional_lut.txt";
+	const unsigned int bits_per_pixel = 8U;
+	const unsigned int pixel_dimension = 512U;
+	const bool         is_nematic_type = true;
+	const bool         RAM_write_enable = true;
+	const bool         use_GPU_if_available = true;
+	const char* const  regional_lut_file = "slm3260_regional.txt";
 
-  unsigned int n_boards_found   = 0U;
-  bool         constructed_okay = true;
+	unsigned int n_boards_found = 0U;
+	bool         constructed_okay = true;
 
-  Blink_SDK sdk(bits_per_pixel, pixel_dimension, &n_boards_found,
-                &constructed_okay, is_nematic_type, RAM_write_enable, 20U,
-                use_GPU_if_available, regional_lut_file);
+	Blink_SDK sdk(bits_per_pixel, pixel_dimension, &n_boards_found,
+		&constructed_okay, is_nematic_type, RAM_write_enable, 20U,
+		use_GPU_if_available, regional_lut_file);
 
-  // Check that everything started up successfully.
-  bool okay = constructed_okay && sdk.Is_slm_transient_constructed();
+	// Check that everything started up successfully.
+	bool okay = false;
+	okay = constructed_okay;
+	okay = sdk.Is_slm_transient_constructed();
 
-  if (okay)
-  {
-    enum { e_n_true_frames = 5 };
-    sdk.Set_true_frames(e_n_true_frames);
-    sdk.SLM_power(true);
-    okay = sdk.Load_linear_LUT(board_number);
-  }
+	// Create a calibration frame for the SLM.
+	uchar_vec calibration(pixel_dimension * pixel_dimension, 255.0);
 
-  // Create two vectors to hold values for two SLM images with opposite ramps.
-  uchar_vec ramp1(pixel_dimension * pixel_dimension);
-  uchar_vec ramp2(pixel_dimension * pixel_dimension);
-  // Generate vertical ramps across the SLM images.
-  Generate_ramp_image(true,  pixel_dimension, pixel_dimension, ramp1);
-  Generate_ramp_image(false, pixel_dimension, pixel_dimension, ramp2);
+	if (okay)
+	{
+		enum { e_n_true_frames = 5 };
+		sdk.Set_true_frames(e_n_true_frames);
+		okay = sdk.Write_cal_buffer(board_number, calibration.data());
+		okay = sdk.Load_linear_LUT(board_number);
+		sdk.SLM_power(true);	
+	}
 
-  okay = okay && ((pre_calculate) ?
-                  Precalculate_and_loop(ramp1, ramp2, board_number, sdk) :
-                  Simple_loop(ramp1, ramp2, board_number, sdk));
+	sdk.
 
-  // Error reporting, if anything went wrong.
-  if (!okay)
-  {
-    puts(sdk.Get_last_error_message());
-  }
-  else
-  {
-    sdk.SLM_power(false);
-  }
+	//// Create two vectors to hold values for two SLM images with opposite ramps.
+	uchar_vec ramp1(pixel_dimension * pixel_dimension);
+	uchar_vec ramp2(pixel_dimension * pixel_dimension);
+	
+	// Generate vertical ramps across the SLM images.
+	Generate_ramp_image(true, pixel_dimension, pixel_dimension, ramp1);
+	Generate_ramp_image(false, pixel_dimension, pixel_dimension, ramp2);
 
-  return (okay) ? EXIT_SUCCESS : EXIT_FAILURE;
+
+
+	/*okay = okay && ((pre_calculate) ?
+	Precalculate_and_loop(ramp1, ramp2, board_number, sdk) :
+	Simple_loop(ramp1, ramp2, board_number, sdk));*/
+	test_write_image(ramp1, ramp2, calibration, board_number, sdk);
+	//Sleep(1000);
+	//Simple_loop(ramp1, ramp2, board_number, sdk);
+	//Precalculate_and_loop(ramp1, ramp2, board_number, sdk);
+
+	// Error reporting, if anything went wrong.
+	if (!okay)
+	{
+		puts(sdk.Get_last_error_message());
+	}
+	else
+	{
+		sdk.SLM_power(false);
+	}
+
+	return (okay) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
+

@@ -55,7 +55,7 @@ if constructed_okay.value == 0
     calllib('Blink_SDK_C', 'Delete_SDK', sdk);
 else
     disp('Blink SDK was successfully constructed');
-    fprintf('Found %u SLM controller(s)', num_boards_found.value);
+    fprintf('Found %u SLM controller(s)\n', num_boards_found.value);
     % Set the basic SLM parameters
     calllib('Blink_SDK_C', 'Set_true_frames', sdk, true_frames);
     % A blank calibration file must be loaded to the SLM controller
@@ -66,9 +66,10 @@ else
     % Turn the SLM power on
     calllib('Blink_SDK_C', 'SLM_power', sdk, 1);
     
+    disp('Cycling between ramp images');
     % Loop between our ramp images
-    for n = 1:100
-        calllib('Blink_SDK_C', 'Write_overdrive_image', sdk, 1, ramp_0, 0, 0);
+    for n = 1:1000
+        calllib('Blink_SDK_C', 'Write_overdrive_image', sdk, 1, ramp_0, 0, 1);
         pause(0.025) % This is in seconds
         calllib('Blink_SDK_C', 'Write_overdrive_image', sdk, 1, ramp_1, 0, 0);
         pause(0.025) % This is in seconds
