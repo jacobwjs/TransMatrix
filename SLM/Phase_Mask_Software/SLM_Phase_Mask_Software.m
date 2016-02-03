@@ -22,7 +22,7 @@ function varargout = SLM_Phase_Mask_Software(varargin)
 
 % Edit the above text to modify the response to help SLM_Phase_Mask_Software
 
-% Last Modified by GUIDE v2.5 28-Jan-2016 13:09:53
+% Last Modified by GUIDE v2.5 02-Feb-2016 23:39:08
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -452,3 +452,27 @@ handles.slm.SLM_power(handles.slm_power);
 
 % Update handles structure.
 guidata(hObject, handles);
+
+
+% --- Executes on button press in pushbutton_load_image.
+function pushbutton_load_image_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_load_image (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+[filename, pathname] = ...
+     uigetfile({'*.bmp';'*.jpg';'*.png';'*.*'});
+ I = uint8(imread([pathname, filename]));
+ 
+ % FIXME
+ % - Need to put inside a while loop
+ % Check the pixel count to ensure the image fits on the device.
+ if ((size(I,1) > handles.slm.x_pixels) | (size(I,2) > handles.slm.y_pixels))
+     fprintf('Error: Image size = %ix%i\n', size(I,1), size(I,2));
+     fprintf('Image does not fit on the device (%ix%i)\n', handles.slm.x_pixels, handles.slm.y_pixels);
+ end
+ 
+ handles.current_data = I;
+ 
+ handles = update_image(handles);
