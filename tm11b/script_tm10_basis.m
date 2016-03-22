@@ -28,17 +28,17 @@ input_to_field = @(v)ifft2(ifftshift2(unmask(v, slm_params.freq.mask1c)));
 field_to_input = @(fields)mask(fftshift2(fft2(fields)), slm_params.freq.mask1c);
 
 % [RECONSTRUCTION & OUTPUT BASIS]
-% Convert camera images to field images
-camera_to_field = @(frames)reconstruct_simple(frames, holo_params.freq.mask2, holo_params.freq.mask2c);
-
-% Convert camera images to 1D output vectors
-camera_to_output = @(frames)reconstruct_half(frames, holo_params.freq.mask1);
-
 % Convert field images to 1D output vectors
 field_to_output = @(fields)mask(fftshift2(fft2(fields)), holo_params.freq.mask1c);
 
 % Convert 1D output vectors to field images (for visualization and SVD plot)
 output_to_field = @(v)ifft2(ifftshift2(unmask(v, holo_params.freq.mask1c)));
+
+% Convert camera images to 1D output vectors
+camera_to_output = @(frames)mask(fftshift2(fft2(frames)), holo_params.freq.mask1);
+
+% Convert camera images to field images
+camera_to_field = @(frames)output_to_field(camera_to_output(frames));
 
 % Convert output basis 1D vectors to FFT-domain image (for SVD plot)
 output_to_fft = @(v)unmask(v, clip_mask(holo_params.freq.mask1c));

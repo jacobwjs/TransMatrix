@@ -9,6 +9,8 @@
 % Matlab only supports C-style headers so this is a 'sanitized' version of
 % the normal header file
 loadlibrary('Blink_SDK_C.dll', 'Blink_SDK_C_matlab.h');
+% loadlibrary('C:\Users\admin\Desktop\Jacob\TransMatrix\Meadowlark\SDK\Blink_SDK_C.dll',...
+%             'C:\Users\admin\Desktop\Jacob\TransMatrix\Meadowlark\SDK\Blink_SDK_C_matlab.h');
 
 % Basic parameters for calling Create_SDK
 bit_depth = 8;
@@ -17,12 +19,13 @@ num_boards_found = libpointer('uint32Ptr', 0);
 constructed_okay = libpointer('int32Ptr', 0);
 is_nematic_type = 1;
 RAM_write_enable = 1;
-use_GPU = 0;
+use_GPU = 1;
 max_transients = 20;
 
 % OverDrive Plus Parameters
 % Matlab automatically escapes backslashes (unlike most languages)
-lut_file = 'C:\SLM_lut.txt';
+%lut_file = 'C:\SLM_lut.txt';
+lut_file = 'slm3260_regional.txt';
 
 % Basic SLM parameters
 true_frames = 3;
@@ -34,7 +37,17 @@ cal_image = imread('512white.bmp');
 ramp_0 = imread('ramp_0_512.bmp');
 ramp_1 = imread('ramp_1_512.bmp');
 
-sdk = calllib('Blink_SDK_C', 'Create_SDK', bit_depth, slm_resolution, num_boards_found, constructed_okay, is_nematic_type, RAM_write_enable, use_GPU, max_transients, lut_file);
+sdk = calllib('Blink_SDK_C',...
+              'Create_SDK',...
+              bit_depth,...
+              slm_resolution,...
+              num_boards_found,...
+              constructed_okay,...
+              is_nematic_type,...
+              RAM_write_enable,...
+              use_GPU,...
+              max_transients,...
+              lut_file);
 
 if constructed_okay.value == 0
     disp('Blink SDK was not successfully constructed');
@@ -54,7 +67,7 @@ else
     calllib('Blink_SDK_C', 'SLM_power', sdk, 1);
     
     % Loop between our ramp images
-    for n = 1:1000
+    for n = 1:100
         calllib('Blink_SDK_C', 'Write_overdrive_image', sdk, 1, ramp_0, 0, 0);
         pause(0.025) % This is in seconds
         calllib('Blink_SDK_C', 'Write_overdrive_image', sdk, 1, ramp_1, 0, 0);

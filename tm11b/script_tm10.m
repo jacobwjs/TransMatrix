@@ -9,14 +9,126 @@
 % Cleanup
 reset_all;
 
+DEBUG = false;
+
+% Shortcut functions
+myfft2  = @(x) fftshift(fft2(ifftshift(x)));
+myifft2 = @(x) fftshift(ifft2(ifftshift(x))); 
+radians_to_8bit = @(img)uint8(mod(angle(img)*256/(2*pi), 256));
+
 % Identify script
 name_of_script = mfilename;
 
+%% Initialize the hardware (SLM + Camera)
+% -------------------------------------------------------------------------
+% Initialize the SLM
+run_test_patterns = false;
+slm = slm_device('meadowlark', run_test_patterns);
+
+% Initialize camera
+vid = camera_mex('distal', 'ElectronicTrigger');
+% Define the ROI in the camera
+camera_frame_offsetX_pixels = 352;
+camera_frame_offsetY_pixels = 155;
+camera_width_pixels   = 544;
+camera_height_pixels  = 544;
+vid.ROIPosition = [camera_frame_offsetX_pixels camera_frame_offsetY_pixels...
+                   camera_width_pixels camera_height_pixels];
+camera_exposure_us = 2000;
+
+
+
 %% Calibration (configure fullscreen, camera and holography)
-% Load proximal-side calibration data
-% slm_params = slm_getcal();
-%slm_params = slm_getcal('ROISize',[960 960]);
-slm_params = slm_getcal('ROISize',[1024 1024]);
+% -------------------------------------------------------------------------
+% Define proximal-side calibration data
+x_slm = slm.x_pixels;
+y_slm = slm.y_pixels;
+slm_params = struct();
+slm_params.ROI = [0 0 x_slm y_slm];
+slm_params.exposure = [];
+% Assume the image of the fiber facet on the SLM is centered.
+slm_params.fiber.x = 257;
+slm_params.fiber.y = 257;
+
+% DC in k-space (assuming a 512x512 grid)
+% x_offset = 256;
+% y_offset = 256;
+% freq_x = -101;
+% freq_y = 101;
+slm_params.freq.x = 146; % x_offset + freq_x = 155;
+slm_params.freq.y = 377; % y_offset + freq_y = 357;
+slm_params.freq.r1 = 60;
+slm_params.freq.r2 = slm_params.freq.r1;
+slm_params = recalculate_square_masks(slm_params);
+% slm_params.freq.mask1 = mask_circular([slm_params.ROI(4),slm_params.ROI(3)],...
+%     slm_params.freq.x,...
+%     slm_params.freq.y,...
+%     slm_params.freq.r1*2);
+% 
+% slm_params.freq.mask1c = mask_circular([slm_params.ROI(4),slm_params.ROI(3)],...
+%     [],...
+%     [],...
+%     slm_params.freq.r1*2);
+% 
+% slm_params.freq.mask2 = mask_circular([slm_params.ROI(4),slm_params.ROI(3)],...
+%     slm_params.freq.x,...
+%     slm_params.freq.y,...
+%     slm_params.freq.r2*2);
+% 
+% slm_params.freq.mask2c = mask_circular([slm_params.ROI(4),slm_params.ROI(3)],...
+%     [],...
+%     [],...
+%     slm_params.freq.r2*2);
+
+
+% Define holography parameters
+% -------------------------------------------------------------------------
+holo_params = struct();
+% The holography parameters are defined in the same ROI of the camera
+% frame, as well as the exposure value.
+holo_params.ROI = vid.ROIPosition;
+holo_params.exposure = camera_exposure_us;
+
+% The center (pixel number x-axis and y-axis) of the fiber in the frame
+% retrieved from the camera.
+holo_params.fiber.x = center_of(holo_params.ROI(3)); 
+holo_params.fiber.y = center_of(holo_params.ROI(4));
+
+% The center (pixel number x-axis and y-axis) of the selected order [k-space].
+holo_params.freq.x = 456;   
+holo_params.freq.y = 407;   
+
+% The radius of the selected order in pixel count [k-space].
+holo_params.freq.r1 = 30;  
+holo_params.freq.r2 = slm_params.freq.r1; % Make them equal for the time being.
+
+holo_params.fiber.mask2 = mask_circular([holo_params.ROI(4) holo_params.ROI(3)],...
+                                        holo_params.fiber.x, holo_params.fiber.y, 0.4*holo_params.ROI(3));
+
+                                    
+holo_params = recalculate_square_masks(holo_params);
+% % FIXME:  
+% holo_params.freq.mask1 = mask_circular([holo_params.ROI(4),holo_params.ROI(3)],...
+%     holo_params.freq.x,...
+%     holo_params.freq.y,...
+%     holo_params.freq.r1*2);
+% 
+% holo_params.freq.mask1c = mask_circular([holo_params.ROI(4),holo_params.ROI(3)],...
+%     [],...
+%     [],...
+%     holo_params.freq.r1*2);
+% 
+% holo_params.freq.mask2 = mask_circular([holo_params.ROI(4),holo_params.ROI(3)],...
+%     holo_params.freq.x,...
+%     holo_params.freq.y,...
+%     holo_params.freq.r2*2);
+% 
+% holo_params.freq.mask2c = mask_circular([holo_params.ROI(4),holo_params.ROI(3)],...
+%     [],...
+%     [],...
+%     holo_params.freq.r2*2);
+
+
 
 % Check grid size
 fft_size_check(slm_params.ROI(3));
@@ -28,76 +140,21 @@ end
 disp(['Input mask:  ' int2str(sum(slm_params.freq.mask1(:))) ' pixels (r=' int2str(slm_params.freq.r1) ')']);
 disp(['Input ROI:   ' int2str(slm_params.ROI(3)) 'x' int2str(slm_params.ROI(4))]);
 
-% For testing purposes.
-% tm_inspect_fringes;
-% slm_params.freq.x = first_order.center_x;
-% slm_params.freq.y = first_order.center_y;
-slm_params.freq.x = 206;
-slm_params.freq.y = 870;
-
 % Create a calibration frame
 calibration_frame = modulation_slm(slm_params.ROI(3), ...
                                    slm_params.ROI(4), ...
-                                   slm_params.freq.x, ... % + slm_params.freq.r1/2
+                                   slm_params.freq.x, ...
                                    slm_params.freq.y);
-                            % .* uint8(slm_params.fiber.mask2);
-                          
-% Fullscreen startup parameters
-[x_slm, y_slm] = slm_size();
+                      
+% Show calibration frame
+slm.Write_img(calibration_frame);
 
-% Find the x and y coordinates to center the phase map on the slm.
-slm_params.ROI(1) = round(x_slm/2) - round(slm_params.ROI(3)/2);
-slm_params.ROI(2) = round(y_slm/2) - round(slm_params.ROI(4)/2);
-
-% % Open fullscreen window
-addpath(dx_fullscreen_path);
-dx_options = struct('monitor',      1,...
-                    'screenWidth',  x_slm,...
-                    'screenHeight', y_slm,...
-                    'frameWidth',   slm_params.ROI(3),...
-                    'frameHeight',  slm_params.ROI(4),...
-                    'renderWidth',  slm_params.ROI(3),...
-                    'renderHeight', slm_params.ROI(4),...
-                    'renderPosX',   slm_params.ROI(1),...
-                    'renderPosY',   slm_params.ROI(2));
-d = dx_fullscreen(dx_options);
-d.show(calibration_frame');
-
-% Retreive the slm image obtained from Holoeye software for testing.
-% holoeye_frame = imread('../holoeye_grating.png');
-% holoeye_frame = holoeye_frame(1:960,1:960);
-% Open fullscreen window
-% addpath(dx_fullscreen_path);
-% dx_options = struct('monitor',      1,...
-%                     'screenWidth',  x_slm,...
-%                     'screenHeight', y_slm,...
-%                     'frameWidth',   x_slm,...
-%                     'frameHeight',  y_slm,...
-%                     'renderWidth',  x_slm,...
-%                     'renderHeight', y_slm,...
-%                     'renderPosX',   0,...
-%                     'renderPosY',   0);
-% d = dx_fullscreen(dx_options);
-
-% Show the calibration frame
-%d.show(calibration_frame);
-%d.show(holoeye_frame);
-
-% Initialize camera
-vid = camera_mex('distal','ElectronicTrigger');
-
-% Configure the camera for holography
-holo_params = holography_calibration(vid);
-% disp('/!\ AUTOMATIC CALIBRATION - Press CTRL-C to abort.'); pause(10);
-% load('holography_cal_data.mat'); holo_params = params(strcmp({params.DeviceName},'distal')); clear params;
-% holo_params.exposure = auto_exposure(vid);
 
 disp(['Output mask: ' int2str(sum(holo_params.freq.mask1(:))) ' pixels (r=' int2str(holo_params.freq.r1) ')']);
 disp(['Output ROI:  ' int2str(holo_params.ROI(3)) 'x' int2str(holo_params.ROI(4))]);
 disp(['Exposure:    ' num2str(round(holo_params.exposure)) 'us']);
 
 % Check grid size
-
 fft_size_check(holo_params.ROI(3));
 if holo_params.ROI(3)~=holo_params.ROI(4)
     fft_size_check(holo_params.ROI(4));
@@ -111,11 +168,7 @@ if holo_params.exposure<1000
     end
 end
 
-% Wait
-% disp('Waiting...'); pause(5*60);
 
-% Timing
-tic_global = tic;
 
 %% Definitions
 % [INPUT BASIS]
@@ -140,60 +193,110 @@ sequence_function = @(n)interleave_calibration(interleave_factor, ...
                                                calibration_frame, ...
                                                n);
 
+%% Pre-measurement checks
+% Check order
+figure;
+calibration_frame2 = uint8(mod(double(calibration_frame)+64,256));
+slm.Write_img(calibration_frame);
+frame1 = get_frame(vid, holo_params.exposure, false);
+
+slm.Write_img(calibration_frame2);
+frame2 = get_frame(vid, holo_params.exposure, false);
+
+imagesc(angle(fft2(frame2).*conj(fft2(frame1))));
+title('Order verification');  
+
+% Check distal mask
+figure;
+imagesc(db(double(fftshift2(fft2(frame1))).*holo_params.freq.mask1));
+title('Mask verification');
+
+figure;
+imagesc(db(double(fftshift2(fft2(frame1))).*~holo_params.freq.mask1));
+title('Mask verification');
+
+% Confirmation
+disp('Press a key to continue...');
+pause;
 
 %% Measurement
-% Check order
-disp('Verifying holographic order.');
-order_check = measure_order(d, vid, holo_params.exposure, calibration_frame, camera_to_field);
-if ~order_check
-    error('The wrong holographic order has been selected.');
+% Background correction
+slm.Write_img(255.*ones(size(calibration_frame2),'like',calibration_frame2));
+n_bg = 20;
+frame_bg = zeros(holo_params.ROI(4), holo_params.ROI(3), n_bg);
+for i=1:n_bg
+    frame_bg(:,:,i) = get_frame(vid, holo_params.exposure, false);
+end
+frame_bg = mean(double(frame_bg),3);
+background_vector = mask(fftshift2(fft2(frame_bg)),holo_params.freq.mask1);
+
+% Configure camera for fixed exposure
+set(vid.source, 'ExposureMode', 'Timed');
+set(vid.source, 'ExposureTime', holo_params.exposure);
+start(vid);
+    
+% Timing
+tic_global = tic;
+
+if (DEBUG)
+    % Create a figure that will display the scanning process.
+    figure;
+    hold on;
 end
 
-% warning('Skipping background correction...');
-% Take a picture of the reference wave and background, for control.
-% ------------------------------------------ JWJS ------------------------
-disp('Begin recording reference wave and background:');
-[reference_mean, reference_std, background_mean, background_std] = ...
-           measure_reference(vid, holo_params.exposure);
+% Begine the measurement of the inputs (X) to outputs (Y).
+data_rec = zeros(sum(sum(holo_params.freq.mask1)),number_of_frames,'like',1i);
+time = zeros(1,number_of_frames);
+progress(0,number_of_frames);
+for i=1:number_of_frames
+    % Display pattern
+    slm.Write_img(sequence_function(i));
+    %pause(0.050);
+   
+    
+    % Grab frame
+    trigger_camera(holo_params.exposure, [], 1, false);
+    [frame, time(i)] = getdata(vid,1);
+    
 
+    
+    % Process frame and store
+    data_rec(:,i) = camera_to_output(frame);
+    
+   
+    
+    
+    if (DEBUG)
+        subplot(2,2,1);
+        imagesc(sequence_function(i));
+        title('Input (SLM)');
+        
+        subplot(2,2,2);
+        imagesc(frame);
+        title('Output (Camera)');
+        
+        subplot(2,2,3);
+        imagesc(db(myfft2(frame)));
+        title('FFT(Output)');
+        
+        subplot(2,2,4);
+        imagesc(abs(myifft2(sequence_function(i))));
+        title('kx, ky');
+        drawnow;
+    end
 
-% Test for the misplaced shutter error
-% if mean(abs(camera_to_output(reference_mean)).^2)>100
-%    error('Possible malfunction in the proximal shutter. Background correction will fail.'); 
-% end
-       
-% Setup disk writer
-addpath('../gige/disk_writer/disk_writer/');
-% ---------------------------------------- JWJS ----------------
-%dump_path = 'C:\video.transposed.dat';
-dump_path = [pwd, 'data\video.transposed.dat'];
-fprintf('Writing to %s\n', dump_path);
-dw = diskwriter(dump_path, vid, true);
-% ----------------------------------------------
+    
+    
+    % Progress meter
+    progress(i,number_of_frames);
+end
+  
+% Reconfigure camera
+stop(vid);
+set(vid.source, 'ExposureMode', 'TriggerWidth');
 
-% Setup FFT processor
-addpath('../gige/fft_processor/fft_processor/');
-fftp_ind = mask_to_indices(holo_params.freq.mask1, 'fftshifted-to-fftw-r2c-transpose');
-fftp = fftprocessor(holo_params.ROI(3), holo_params.ROI(4), dw, fftp_ind);
-
-% Measurement
-measurement_stats = measure_sequence(d, ...
-                                     fftp, ...
-                                     holo_params.exposure, ...
-                                     sequence_function, ...
-                                     number_of_frames);
-
-% Get data
-[data_rec, time] = getdata(fftp, number_of_frames);
-% getdata_workaround;
-                          
 % Background subtraction
-data_rec = bsxfun(@minus,data_rec,mask(fftshift2(fft2(reference_mean)),holo_params.freq.mask1));
-
-% Delete extra objects
-delete(fftp);
-delete(dw);
-clear fftp dw;
+data_rec = bsxfun(@minus,data_rec,background_vector);
 
 % Check reconstuction
 figure;
@@ -205,26 +308,9 @@ title('Reconstruction');
 pause(0.010);
 
 
-%% Archival and reorganization
-% Save some data for later reference
-disp('Archival...');
-number_of_frames_rec = size(data_rec,2);
-FramesToArchive = [1:20 randi(number_of_frames_rec,1,20) (number_of_frames_rec-19):number_of_frames_rec];
-FramesToArchive = unique(FramesToArchive(FramesToArchive>0 & FramesToArchive<=number_of_frames_rec));
-Archive = struct();
-Archive.data_rec = data_rec(:,FramesToArchive);
-Archive.data_in  = sequence_function(FramesToArchive);
-Archive.time     = time(FramesToArchive);
-Archive.Indices  = FramesToArchive;
-Archive.data_out = video_read(dump_path, 'uint16', [holo_params.ROI(4) holo_params.ROI(3)], FramesToArchive);
-Archive.data_out = permute(Archive.data_out,[2 1 3]);
-
-% Function to read frames from the dump for verification
-video_stack = @(n)permute(video_read(dump_path, 'uint16', [holo_params.ROI(4) holo_params.ROI(3)], n),[2 1 3]);
-
 %% Corrections
 % Drift compensation
-[output_matrix, time_matrix, ...
+[T, time_matrix, ...
  corr_cal, power_cal, pred_cal, time_cal, ...
  data_rec_cal_mean, data_rec_cal_std ] ...
        = drift_correction(data_rec, time, calibration_frames);
@@ -233,38 +319,7 @@ clear data_rec;
 % Energy normalization
 disp('Energy normalization...');
 normalization_factor = sqrt(sum(abs(data_rec_cal_mean(:)).^2));
-output_matrix = output_matrix./normalization_factor;
-
-
-%% Transmission matrix
-disp('Transmission matrix...');
-
-% Create input matrix if it does not already exist
-if ~exist('input_matrix','var')
-    input_matrix = input_function(1:input_size(2));
-end
-
-% Create the transmission matrix
-if input_unitary
-    T = output_matrix * input_matrix';
-else
-    tic_ls = tic;
-    disp('(using least-squares)');
-    %T = lscov(input_matrix.', output_matrix.').';
-    T = double(output_matrix)/double(input_matrix);
-    time_ls = toc(tic_ls); toc(tic_ls);
-end
-clear output_matrix;
-clear input_matrix;
-
-% % Save TM in full precision
-% stamp = clock;
-% stamp_str = [num2str(stamp(1)) '-' num2str(stamp(2),'%02d') '-' num2str(stamp(3),'%02d') ' ' num2str(stamp(4),'%02d') '-' num2str(stamp(5),'%02d') '-' num2str(round(stamp(6)),'%02d')];
-% save2(['./data/' stamp_str ' tm10 (matrix full precision).mat'],'T','-v7.3');
-
-% % Convert to single
-% warning('Converting matrix to single precision...');
-% T = single(T);
+T = T./normalization_factor;
 
 %% Alignment checks
 disp('Calculating fiber transmission...');
@@ -284,17 +339,11 @@ title('Distal side transmission');
 
 %% Inversion of the transmssion matrix
 disp('Inversion...');
-script_tm8_inversion_svd;
+% script_tm8_inversion_svd;
+inversions = struct();
+inversions.T_inv = T';
+inversions.InversionMethod = 'T''';
 
-
-%% Bottle beam display
-% mask_input_gs = imdilate(mask_input,strel('disk',5));
-% input_to_slm_gs = @(v)phase_gs2(ifft2(ifftshift2(unmask(v,mask_input))),mask_input_gs,50);
-% disp('Waiting for generation.');
-% test_bottle_generate2;
-% test_bottle_display2;
-% % disp('Waiting for alignment.');
-% % pause;
 
 %% Validation
 % Choice of patterns
@@ -312,25 +361,32 @@ disp('Generating inputs...');
 experiments = patterns_generate(patterns,...
                                 inversions, ...
                                 T, ...
-                                input_to_slm_gs,...
+                                input_to_slm,...
                                 slm_to_input,...
                                 field_to_output);
 
 % Measure response to test masks
 disp('Recording response to test patterns...');
-[experiments, speckle_ref] = patterns_measure(vid, ...
-                                              d, ...
-                                              camera_to_output, ...
-                                              camera_to_field, ...
-                                              experiments, ...
-                                              calibration_frame);
+set(vid.source, 'ExposureMode', 'TriggerWidth');
+h_fig = figure;
+for i=1:numel(experiments)
+    % Show on SLM
+    slm.Write_img(experiments(i).SLM);
+    
+    % Pause
+    pause(0.100);
+    
+    % Grab frame
+    experiments(i).I_out = get_frame(vid, holo_params.exposure, false);
 
-% Analyze results
-disp('Analyzing results...');
-disp(' ');
-experiments = patterns_analyze(experiments, ...
-                               speckle_ref, ...
-                               holo_params.fiber.mask1);
+    % Show image
+    figure(h_fig);
+    imagesc(experiments(i).I_out);
+    axis image; axis off;
+    title({['Experiment #' num2str(i)], ...
+           'Output'});
+end
+
 
 %% Finish
 % Total time
@@ -341,48 +397,90 @@ total_time = toc(tic_global);
 stamp = clock;
 stamp_str = [num2str(stamp(1)) '-' num2str(stamp(2),'%02d') '-' num2str(stamp(3),'%02d') ' ' num2str(stamp(4),'%02d') '-' num2str(stamp(5),'%02d') '-' num2str(round(stamp(6)),'%02d')];
 
-% Plot window
-patterns_plot(experiments, holo_params, slm_params, stamp_str);
-
 %% Save data
 % Ask for name of file
-str = input('Enter a description for this dataset (or CTRL-C to stop without saving):\n','s');
-if numel(str)==0
-    str = name_of_script;
+% str = input('Enter a description for this dataset (or CTRL-C to stop without saving):\n','s');
+% if numel(str)==0
+%     str = name_of_script;
+% end
+% str = '_CW_experiment';
+% save2(['./data/' stamp_str ' ' str '.mat'],...
+%        '*',...
+%        '-bytes>100000000',...
+%        '-class:handle',...
+%        '-class:videoinput',...
+%        '-class:videosource',...
+%        '-class:gigeinput',...
+%        '-class:gigesource',...
+% 	   '-inversions',...
+%        '-input_function',...
+%        '-input_matrix',...
+%        '-output_matrix',...
+%        '-data_rec',...
+%        '-U',...
+%        '-S',...
+%        '-V',...
+%        '-Tb',...
+%        '-X_spots',...
+%        '-Y_spots',...
+%        '-V_sensor',...
+%        '-phase_factor',...
+%        '-phase_factor_v',...
+%        '-spot_function',...
+%        '-stack_bg',...
+%        '-stack_hdr',...
+%        '-y',...
+%        'T',...
+%        'Archive',...
+%        'experiments',...
+%        '/list-skipped');
+
+% Scan the spot.
+fiber_mask = holo_params.fiber.mask2;
+x_range = -200:5:200; %-40:1:40;
+y_range = -200:5:200; %-40:1:40;
+for i = x_range
+    for j = y_range
+        % Save desired target vector
+        %i = 0; j = 2;
+        %i = -36; j = 35;
+        %i = 123; j = -35;
+        Y_target = field_to_output(pattern_spot(fiber_mask,j,i));
+
+        % Calculate corresponding input pattern
+        X_inv = inversions.T_inv * Y_target;
+        
+        % Calculate the required SLM mask
+        SLM_mask = input_to_slm(conj(X_inv));
+        
+        % Write to the SLM.
+        slm.Write_img(SLM_mask);
+        
+        %        % From the SLM mask, get the experimental input that is actually sent to the fiber
+        %        % (there may be distortions due to the use of a phase-only mask)
+        %        experiments(i,j).X_inv_exp   = slm_to_input(experiments(i,j).SLM);
+        %
+        %        % Simulate the output, both for the theoretical input and the
+        %        % experimental input
+        %        experiments(i,j).Y_sim       = T * experiments(i,j).X_inv;
+        %        experiments(i,j).Y_sim_exp   = T * experiments(i,j).X_inv_exp;
+        
+    end
 end
 
-
-save2(['./data/' stamp_str ' ' str '.mat'],...
-       '*',...
-       '-bytes>100000000',...
-       '-class:handle',...
-       '-class:videoinput',...
-       '-class:videosource',...
-       '-class:gigeinput',...
-       '-class:gigesource',...
-	   '-inversions',...
-       '-input_function',...
-       '-input_matrix',...
-       '-output_matrix',...
-       '-data_rec',...
-       '-U',...
-       '-S',...
-       '-V',...
-       '-Tb',...
-       '-X_spots',...
-       '-Y_spots',...
-       '-V_sensor',...
-       '-phase_factor',...
-       '-phase_factor_v',...
-       '-spot_function',...
-       '-stack_bg',...
-       '-stack_hdr',...
-       '-y',...
-       'T',...
-       'Archive',...
-       'experiments',...
-       '/list-skipped');
-
-
-
-
+% % stop(vid);
+% % set(vid.source, 'ExposureMode', 'TriggerWidth');
+% % start(vid);
+% % figure;
+% % while 1
+% % %     frame = get_frame(vid, 2000, false);
+% % %     imagesc(db(fftshift2(fft2(frame))));
+% % 
+% %     trigger_camera(holo_params.exposure, [], 1, false);
+% %     [frame, ~] = getdata(vid,1);
+% %     imagesc(db(fftshift2(fft2(frame))));
+% %     %imagesc(frame);
+% %     drawnow;
+% %     
+% %    % pause(0.25);
+% % end

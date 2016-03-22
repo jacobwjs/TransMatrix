@@ -12,7 +12,7 @@
 
 classdef fftprocessor < hgsetget
     
-    properties (SetAccess = private, Hidden = true, Transient = true)
+    properties (SetAccess = private, Transient = true)
          % Handle to the underlying C++ class instance
         objectHandle;
         

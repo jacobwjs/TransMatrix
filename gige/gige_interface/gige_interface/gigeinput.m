@@ -192,10 +192,29 @@ classdef gigeinput < hgsetget
             if ~isnumeric(ROI) || ~isreal(ROI) || numel(ROI)~=4 || ~(all(ROI==round(abs(ROI))));
                error('Invalid ROI'); 
             end
+           
+            % Save running state of camera before ROI update.
+            if (vid.Running)
+                leave_camera_running = true;
+            else
+                leave_camera_running = false;
+            end
+            
+            % Ensure the video source is stopped before updating, otherwise
+            % it is an error.
+            stop(vid);
+            
             set(vid.source,'Width',ROI(3)); %#ok<MCSUP>
             set(vid.source,'Height',ROI(4)); %#ok<MCSUP>
             set(vid.source,'OffsetX',ROI(1)); %#ok<MCSUP>
             set(vid.source,'OffsetY',ROI(2)); %#ok<MCSUP>
+            
+            % Start camera if it was not running before, otherwise it is
+            % left non-running.
+            if leave_camera_running
+                start(vid);
+            end
+            
         end
         function res = get.VideoResolution(vid)
             res = [get(vid.source,'Width'),...

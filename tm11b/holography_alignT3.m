@@ -19,7 +19,7 @@ mask_inputc = abs(move_xy(mask_input,dx0,dy0))>0.5;
 
 %%
 tic;
-n_sel = 100;
+n_sel = 250;
 sel1 = T(randi(size(T,1),n_sel,1),:)';
 sel2 = T(:,randi(size(T,2),1,n_sel));
 

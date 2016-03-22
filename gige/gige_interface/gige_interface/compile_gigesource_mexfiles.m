@@ -1,4 +1,4 @@
-% Script to compile .mex files
+% Script to compile gigesource .mex files
 %   - Damien Loterie (03/2015)
 
 clear all;

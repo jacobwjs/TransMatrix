@@ -3,17 +3,15 @@ function real_order = measure_order(d, vid, exposure, calibration_frame, camera_
        
     % Check camera
     source = vid.source;
-    % --------------------------------------- JWJS ----------------
     DeviceID = source.deviceInfo.ID;
     fprintf('Measuring order for camera: %s (ID=%s)\n',...
             source.name,...
             source.deviceInfo.ID);
-%     if ~strcmp(get(source,'DeviceID'), DeviceID)
-%         error('This function is designed for the distal-side camera. To use another camera, the shutters must be coded differently.');
-%     end 
-    % ---------------------------------------------
+
     
     % Open shutters
+    % FIXME:
+    %  - Need to implement something similar for the MARK-1 prototype.
     shutter('both','open');
 
     % Show calibration frame

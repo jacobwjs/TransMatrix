@@ -48,6 +48,7 @@ classdef gigesource < hgsetget
         
         % Destructor
         function delete(this)
+            display(['Releasing video source...']);
             gigesource_mex('delete', this.objectHandle);
         end
         
