@@ -2,12 +2,15 @@
 % Meadowlark Optics Spatial Light Modulators
 % March 28 2015
 
+% Updated Jan. 2016
+% - Jacob Staley
+
 % INPUTS:
 % 'run_test_patterns' => [bool] Dictates if the SLM should run
 %                          through a series of test patterns to verify the 
 %                          device is working.
 % OUTPUT:
-% 'sdk' => A lib pointer to the Meadowlark SDK.
+% 'sdk' => A libpointer to the Meadowlark SDK.
 % -------------------------------------------------------------------------
 function [sdk] = Initialize_meadowlark_slm(run_test_patterns)
 

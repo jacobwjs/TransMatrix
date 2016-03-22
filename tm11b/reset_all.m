@@ -6,6 +6,10 @@
 % Command window
 clc;
 
+if (exist('slm', 'var'))
+    clear slm;
+end
+    
 % Close fullscreens
 s = whos;
 for i=1:numel(s)
@@ -29,7 +33,7 @@ imaqreset;
 imaqmem(26*1024^3); clear ans;
 
 % Close shutters
-shutter('reset');
+%shutter('reset');
 
 % % Restart parallelpool
 % if matlabpool('SIZE')>0

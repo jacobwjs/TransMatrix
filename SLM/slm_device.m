@@ -1,19 +1,20 @@
 classdef slm_device < handle
-    %SLM_DEVICE Summary of this class goes here
-    %   Detailed explanation goes here
+    % A class that creates a middle layer between SLM and user to abstract
+    % the details of each new SLM used.
+    % - Jacob Staley (Feb. 2016)
+    
+    properties (GetAccess = public, SetAccess = private)
+        % Struct that can be passed to functions giving information on the
+        % SLM. 
+        props = struct();
+    end
     
     properties (SetAccess = public)
         % General properties.
         % -----------------------------------------------------------------
-        % Boolean showing whether or not the SLM is currently enabled.
-        slm_power_enabled = false;
         
-        % Model of the SLM.
-        model = [];
         
-        % Dimensions of the SLM.
-        x_pixels = 0;
-        y_pixels = 0;
+        
         
         % Meadowlark specific properties.
         % -----------------------------------------------------------------
@@ -29,6 +30,20 @@ classdef slm_device < handle
     end
     
     properties (SetAccess = private)
+        
+        % General properties of the device.
+        % -----------------------------------------------------------------
+        % Boolean showing whether or not the SLM is currently enabled.
+        slm_power_enabled = false;
+        
+        % Dimensions of the SLM.
+        x_pixels = 0;
+        y_pixels = 0;
+        pixel_size = 0;
+        
+        % Model of the SLM.
+        model = [];
+        
         % Meadowlark specific properties.
         % -----------------------------------------------------------------
         % Meadowlark Blink Overdrive SDK.
@@ -47,14 +62,15 @@ classdef slm_device < handle
     methods
         % Constructor
         % -----------------------------------------------------------------
-        function obj = slm_device(device_model)
+        function obj = slm_device(device_model, run_tests)
             % Figure out what kind of SLM we are working with.
             if strcmp(device_model, 'meadowlark')
-                obj.sdk = Initialize_meadowlark_slm(true);
+                obj.sdk = Initialize_meadowlark_slm(run_tests);
                 obj.slm_power_enabled   = true;
                 obj.model               = device_model;
                 obj.x_pixels            = 512;
                 obj.y_pixels            = 512;
+                obj.pixel_size          = 15e-6; %[meters]
                 % Unsupported function call for the moment.
                 %obj.overdrive       = calllib('Blink_SDK_C', 'Is_overdrive_available', obj.sdk);
             elseif strcmp(device_model, 'holoeye')
@@ -62,6 +78,12 @@ classdef slm_device < handle
             else
                 display('Error: the model of SLM chosen is invalid.');
             end
+            
+            % Assign the general properties of the SLM to the struct.
+            obj.props.x_pixels      = obj.x_pixels;
+            obj.props.y_pixels      = obj.y_pixels;
+            obj.props.pixel_size    = obj.pixel_size;
+            obj.props.model         = device_model;
             
         end
         

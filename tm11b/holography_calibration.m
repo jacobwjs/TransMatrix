@@ -96,6 +96,11 @@ function [params, frame_ROI, frame] = holography_calibration(varargin)
         
         % Adapt ROI (this code is dependent on the camera)
         if roi_flag
+            % -------------------------------- JWJS ---------------------
+            % This check is because the photonfocus camera only allows
+            % adjustments of multiples of 32 pixels for some strange
+            % reason. 'ROI_adapt' ensures that happens.
+            % --------------------------------------
             if isfield(params,'DeviceName') && ~strcmpi(params.DeviceName,'SLM')
                 ROI = ROI_adapt(fiber.xc, fiber.yc, 2*fiber.r2);
                 xmin   = ROI(1);

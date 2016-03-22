@@ -22,7 +22,7 @@ function varargout = SLM_Phase_Mask_Software(varargin)
 
 % Edit the above text to modify the response to help SLM_Phase_Mask_Software
 
-% Last Modified by GUIDE v2.5 02-Feb-2016 23:39:08
+% Last Modified by GUIDE v2.5 04-Feb-2016 12:09:12
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -53,31 +53,30 @@ function SLM_Phase_Mask_Software_OpeningFcn(hObject, eventdata, handles, varargi
 % varargin   command line arguments to SLM_Phase_Mask_Software (see VARARGIN)
 
 % Create an instance of the Meadowlark SDK.
-handles.slm = slm_device('meadowlark');
+run_tests = false;
+handles.slm = slm_device('meadowlark', run_tests);
 
 
 % Set a default constant grey level image.
 handles.linear_tilt_enabled = get(handles.radiobutton_linear_tilt, 'Value');
 handles.linear_tilt = uint8(zeros(handles.slm.x_pixels,...
-    handles.slm.y_pixels));
+                                  handles.slm.y_pixels));
 handles.current_data = uint8(zeros(handles.slm.x_pixels,...
-    handles.slm.y_pixels));
-axes(handles.axes1);
-imagesc(handles.current_data);
+                                   handles.slm.y_pixels));
+handles.phase_summation = [];
 % Set default values for boolean flags used for toggling.
 handles.colorbar_visible = false;
+handles = update_image(handles);                      
+% axes(handles.axes1);
+% imagesc(handles.current_data);
 % Update the image to the proper color scale for our 8-bit controller/SLM.
 set_color_scale(handles);
 
 % Choose default command line output for SLM_Phase_Mask_Software
 handles.output = hObject;
 
-
 % Setup the listeners for the sliders and default values.
 handles = setup_sliders(hObject, handles);
-
-
-
 
 % Update handles structure
 guidata(hObject, handles);
@@ -97,110 +96,6 @@ function varargout = SLM_Phase_Mask_Software_OutputFcn(hObject, eventdata, handl
 varargout{1} = handles.output;
 
 
-% --- Executes on slider movement.
-function slider_yaxis_Callback(hObject, eventdata, handles)
-% hObject    handle to slider_yaxis (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'Value') returns position of slider
-%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
-
-handles.slider_y_position = get(hObject, 'Value');
-
-% Calculate the phase mask from the updated linear tilt for this axis.
-handles = update_linear_tilt(hObject, handles);
-
-% Update and display new linear tilt contribution.
-handles = update_image(handles);
-
-% Update handles structure
-guidata(hObject, handles);
-
-% --- Executes during object creation, after setting all properties.
-function slider_yaxis_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to slider_yaxis (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: slider controls usually have a light gray background.
-if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor',[.9 .9 .9]);
-end
-
-
-
-% --- Executes on slider movement.
-function slider_xaxis_Callback(hObject, eventdata, handles)
-% hObject    handle to slider_xaxis (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'Value') returns position of slider
-%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
-
-handles.slider_x_position = get(hObject, 'Value');
-
-% Calculate the phase mask from the updated linear tilt for this axis.
-handles = update_linear_tilt(hObject, handles);
-
-% Update and display new linear tilt contribution.
-handles = update_image(handles);
-
-% Update handles structure
-guidata(hObject, handles);
-
-% --- Executes during object creation, after setting all properties.
-function slider_xaxis_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to slider_xaxis (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: slider controls usually have a light gray background.
-if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor',[.9 .9 .9]);
-end
-
-
-
-function edit1_Callback(hObject, eventdata, handles)
-% hObject    handle to edit1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of edit1 as text
-%        str2double(get(hObject,'String')) returns contents of edit1 as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function edit1_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-% --- Executes on button press in pushbutton_save.
-function pushbutton_save_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton_save (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-[filename, pathname] = uiputfile({'*.bmp'}, 'Save as');
-if isequal(filename,0) || isequal(pathname,0)
-    % User cancelled the save operation, just return.
-    return
-else
-    imwrite(handles.phase_summation, [pathname, filename], 'bmp');
-end
-
-
-
 % --- Executes on selection change in popupmenu_phase_masks.
 function popupmenu_phase_masks_Callback(hObject, eventdata, handles)
 % hObject    handle to popupmenu_phase_masks (see GCBO)
@@ -217,7 +112,7 @@ val     = get(hObject, 'Value');
 % Set the current data to the selected data set.
 switch choice{val};
     case 'Blank Grey Level' % Constant phase of 0.
-        handles.current_data = uint8(zeros(handles.slm.x_pixels,...
+        handles.current_data = 255.*uint8(ones(handles.slm.x_pixels,...
             handles.slm.y_pixels));
         
         % Update the figure phase image.
@@ -269,6 +164,110 @@ end
 
 % Save handles structure.
 guidata(hObject, handles)
+
+
+% --- Executes on slider movement.
+function slider_yaxis_Callback(hObject, eventdata, handles)
+% hObject    handle to slider_yaxis (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'Value') returns position of slider
+%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+
+% Get the current value based on the position of the slider.
+handles.slider_y_position = fix(get(hObject, 'Value'));
+
+% Update the GUI.
+%handles = updateGUI(handles);
+set(handles.edit_slider_val_yaxis, 'String', handles.slider_y_position);
+
+% Calculate the phase mask from the updated linear tilt for this axis.
+handles = update_linear_tilt(hObject, handles);
+
+% Update and display new linear tilt contribution.
+handles = update_image(handles);
+
+% Update handles structure
+guidata(hObject, handles);
+
+% --- Executes during object creation, after setting all properties.
+function slider_yaxis_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to slider_yaxis (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: slider controls usually have a light gray background.
+if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
+end
+
+
+
+% --- Executes on slider movement.
+function slider_xaxis_Callback(hObject, eventdata, handles)
+% hObject    handle to slider_xaxis (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'Value') returns position of slider
+%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+
+% Get the current value based on the position of the slider.
+handles.slider_x_position = fix(get(hObject, 'Value'));
+
+% Update the GUI.
+%handles = updateGUI(handles);
+set(handles.edit_slider_val_xaxis, 'String', handles.slider_x_position);
+
+% Calculate the phase mask from the updated linear tilt for this axis.
+handles = update_linear_tilt(hObject, handles);
+
+% Update and display new linear tilt contribution.
+handles = update_image(handles);
+
+% Update handles structure
+guidata(hObject, handles);
+
+% --- Executes during object creation, after setting all properties.
+function slider_xaxis_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to slider_xaxis (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: slider controls usually have a light gray background.
+if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
+end
+
+
+
+% --- Executes during object creation, after setting all properties.
+function edit_slider_val_yaxis_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_slider_val_yaxis (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in pushbutton_save.
+function pushbutton_save_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_save (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+[filename, pathname] = uiputfile({'*.bmp'}, 'Save as');
+if isequal(filename,0) || isequal(pathname,0)
+    % User cancelled the save operation, just return.
+    return
+else
+    imwrite(handles.phase_summation, [pathname, filename], 'bmp');
+end
 
 
 
@@ -326,15 +325,12 @@ end
 % access to the values.
 % -----------------------------------------------------------
 function handles = setup_sliders(hObject, handles)
-
-
-
 % Set the range and default values for the sliders.
-set(handles.slider_xaxis, 'min', -255);
+set(handles.slider_xaxis, 'min', -256);
 set(handles.slider_xaxis, 'max', 255);
 set(handles.slider_xaxis, 'Value', 0);
 
-set(handles.slider_yaxis, 'min', -255);
+set(handles.slider_yaxis, 'min', -256);
 set(handles.slider_yaxis, 'max', 255);
 set(handles.slider_yaxis, 'Value', 0);
 
@@ -377,9 +373,15 @@ phase = zeros(x_pix, y_pix);
 % sliders as if they are giving an offset from DC to produce the grating.
 % Below we assign the value of the slider relative to the center of the
 % image.
-temp(round(x_pix/2)+round(handles.slider_x_position),...
-    round(y_pix/2)+round(handles.slider_y_position)) = 1;
-
+if ((handles.slider_x_position == 0) & ...
+        (handles.slider_y_position == 0))
+    % If the slider positions are in 0, they we leave a constant phase
+    % mask of zero.
+    phase = temp;
+else
+    temp(round(x_pix/2) - handles.slider_x_position,...
+        round(y_pix/2) - handles.slider_y_position) = 1;
+end
 % Extract the phase from the field
 phase = angle(fftshift(fft2(ifftshift(temp))));
 
@@ -390,8 +392,6 @@ handles.linear_tilt = uint8(mod(round(phase*256/(2*pi)), 256));
 
 % -----------------------------------------------------------
 function handles = update_image(handles)
-
-
 % Calculate the current linear tilt contribution (if any) added to the
 % current_data and display the resulting phase mask.
 if (handles.linear_tilt_enabled)
@@ -461,18 +461,95 @@ function pushbutton_load_image_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 
-[filename, pathname] = ...
-     uigetfile({'*.bmp';'*.jpg';'*.png';'*.*'});
- I = uint8(imread([pathname, filename]));
- 
- % FIXME
- % - Need to put inside a while loop
- % Check the pixel count to ensure the image fits on the device.
- if ((size(I,1) > handles.slm.x_pixels) | (size(I,2) > handles.slm.y_pixels))
-     fprintf('Error: Image size = %ix%i\n', size(I,1), size(I,2));
-     fprintf('Image does not fit on the device (%ix%i)\n', handles.slm.x_pixels, handles.slm.y_pixels);
- end
- 
- handles.current_data = I;
- 
- handles = update_image(handles);
+[filename, pathname] = uigetfile({'*.bmp';'*.jpg';'*.png';'*.*'});
+if (isequal(filename, 0))
+    disp('Load image cancelled');
+    return;
+else
+    disp(['Loading image ', fullfile(pathname, filename), ' to the SLM']);
+end
+I = uint8(imread([pathname, filename]));
+
+% FIXME
+% - Need to put inside a while loop
+% Check the pixel count to ensure the image fits on the device.
+if ((size(I,1) > handles.slm.x_pixels) | ...
+        (size(I,2) > handles.slm.y_pixels))
+    fprintf('Error: Image size = %ix%i\n', size(I,1), size(I,2));
+    fprintf('Image does not fit on the device (%ix%i)\n', handles.slm.x_pixels, handles.slm.y_pixels);
+end
+
+handles.current_data = I;
+
+handles = update_image(handles);
+
+% Update handles structure.
+guidata(hObject, handles)
+
+
+
+function handles = updateGUI(handles)
+% set(handles.edit_slider_val_yaxis, 'String', handles.slider_y_position);
+% set(handles.edit_slider_val_xaxis, 'String', handles.slider_x_position);
+
+
+% -------------------------------------------------------------------------
+function edit_slider_val_yaxis_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_slider_val_yaxis (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit_slider_val_yaxis as text
+%        str2double(get(hObject,'String')) returns contents of edit_slider_val_yaxis as a double
+
+% % Retrieve the new value from the edit box and assign it to the slider
+% % position.
+% new_val = fix(str2double(get(hObject, 'String')));
+%
+% % Set the slider to the new position, and call the 'callback' to update
+% % everything else appropriately.
+% set(handles.slider_yaxis, 'Value', new_val);
+%
+% % Update handles structure
+% guidata(hObject, handles);
+% slider_yaxis_Callback(handles.slider_yaxis, eventdata, handles);
+%
+% % Update handles structure
+% guidata(hObject, handles);
+
+
+% -------------------------------------------------------------------------
+function edit_slider_val_xaxis_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_slider_val_xaxis (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit_slider_val_xaxis as text
+%        str2double(get(hObject,'String')) returns contents of edit_slider_val_xaxis as a double
+
+% % Retrieve the new value from the edit box and assign it to the slider
+% % position.
+% new_val = fix(str2double(get(hObject, 'String')));
+%
+% % Set the slider to the new position, and call the 'callback' to update
+% % everything else appropriately.
+% set(handles.slider_xaxis, 'Value', new_val);
+%
+% % Update handles structure
+% guidata(hObject, handles);
+% slider_xaxis_Callback(handles.slider_xaxis, eventdata, handles);
+%
+% % Update handles structure
+% guidata(hObject, handles);
+
+% --- Executes during object creation, after setting all properties.
+function edit_slider_val_xaxis_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_slider_val_xaxis (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end

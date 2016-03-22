@@ -3,9 +3,15 @@ lambda = 785e-9
 
 % Holoeye SLM attributes.
 % -----------------------------------------
-x_pixels_SLM    = 1920;
-y_pixels_SLM    = 1080;
-pixel_size_SLM  = 8e-6;
+holoeye_x_pixels    = 1920;
+holoeye_y_pixels    = 1080;
+holoeye_pixel_size  = 8e-6;
+
+% Meadowlark SLM attributes.
+% -----------------------------------------
+meadowlark_x_pixels = 512;
+meadowlark_y_pixels = 512;
+meadowlark_pixel_size = 15e-6;
 
 % Camera attributues.
 % -----------------------------------------
@@ -145,12 +151,12 @@ field_recon = fftshift(ifft2(ifftshift(FFT_holo_masked)));  % Reconstructed fiel
 % FT_holo_masked = ifftshift(FT_holo.*spectral_filter);   % hologram Fourier Transform masked
 % field_recon = ifftshift(ifft2(FT_holo_masked));         % Reconstructed field 
 
-% figure, imagesc(db(abs(FFT_holo))), axis image, colormap(jet), title('hologram FFT')
-% figure, imagesc(abs(FFT_holo_masked)), axis image, colormap(jet), title('hologram FFT masked')
-% figure, imagesc(abs(field_recon)), axis image, colormap(jet), title('reconstructed field: AMPLITUDE')
-% figure, imagesc(angle(field_recon)), axis image, colormap(jet), title('reconstructed field: PHASE + carrier')
-% figure, imagesc(angle(field_recon.*(carrier))), axis image, colormap(jet), title('reconstructed field: PHASE')
-% figure, imagesc(abs(FFT_holo_masked)), axis image, colormap(jet), title('hologram FFT masked')
-% 
+figure, imagesc(db(abs(FFT_holo))), axis image, colormap(jet), title('hologram FFT')
+figure, imagesc(abs(FFT_holo_masked)), axis image, colormap(jet), title('hologram FFT masked')
+figure, imagesc(abs(field_recon)), axis image, colormap(jet), title('reconstructed field: AMPLITUDE')
+figure, imagesc(angle(field_recon)), axis image, colormap(jet), title('reconstructed field: PHASE + carrier')
+figure, imagesc(angle(field_recon.*(carrier))), axis image, colormap(jet), title('reconstructed field: PHASE')
+figure, imagesc(abs(FFT_holo_masked)), axis image, colormap(jet), title('hologram FFT masked')
+
 
 

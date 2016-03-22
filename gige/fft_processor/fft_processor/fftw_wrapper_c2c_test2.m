@@ -3,7 +3,7 @@
 %  - Damien Loterie (04/2015)
 
 % Includes
-addpath('../../../tm9');
+addpath('../../../tm11b');
 % addpath('../../gige_interface/gige_interface');
 
 % Load data

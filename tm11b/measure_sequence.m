@@ -27,8 +27,11 @@ function metadata = measure_sequence(d, ...
     for i=1:numel(vids)
         % Set counter
         set(vids{i}.source,'Counter_Image',0);
-        set(vids{i},'TriggerRepeat',Inf); % Used to be number_of_frames. It's actually (number_of_frames-1) if you don't count the test frame below.
-
+        
+        % Used to be number_of_frames. It's actually (number_of_frames-1)
+        % if you don't count the test frame below.
+        set(vids{i},'TriggerRepeat',Inf); 
+        
         % Start camera
         flushdata(vids{i});
         start(vids{i});
@@ -82,8 +85,8 @@ function metadata = measure_sequence(d, ...
     progress(0,number_of_frames);
     
     % Waiting loop
-    while frames_available<number_of_frames && isempty(f.Error);
-        if numel(vids)>0
+    while frames_available < number_of_frames && isempty(f.Error);
+        if numel(vids) > 0
             % Check how many frames have been acquired by each source
             frames_acquired_new = zeros(numel(vids),1);
             for i=1:numel(vids)
@@ -92,7 +95,7 @@ function metadata = measure_sequence(d, ...
             frames_acquired_new = min(frames_acquired_new);
 
             % Check if new frames are coming in or not (w.r.t. last iteration)
-            if (frames_acquired_new==frames_available)
+            if (frames_acquired_new == frames_available)
                 stall_counter = stall_counter+1; 
             else
                 stall_counter = 0;
@@ -112,8 +115,8 @@ function metadata = measure_sequence(d, ...
 
         % Progress meter
         loop_counter = loop_counter+1;
-        if (frames_available>0)
-            progress(frames_available,number_of_frames);
+        if (frames_available > 0)
+            progress(frames_available, number_of_frames);
         end
         
         % Memory stats

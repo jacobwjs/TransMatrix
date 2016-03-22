@@ -1,3 +1,6 @@
+% Clears resources tied to the SLM.
+% - Jacob Staley (Feb. 2016)
+
 function Free_meadowlark_slm(sdk)
 
 % Always call Delete_SDK before exiting

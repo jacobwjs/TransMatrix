@@ -1,4 +1,4 @@
-function real_order = measure_order(d, vid, exposure, calibration_frame, camera_to_field)
+function real_order = measure_order_v2(slm, vid, exposure, calibration_frame, camera_to_field)
 	%  - Damien Loterie (12/2015)
        
     % Check camera
@@ -12,24 +12,24 @@ function real_order = measure_order(d, vid, exposure, calibration_frame, camera_
     % Open shutters
     % FIXME:
     %  - Need to implement something similar for the MARK-1 prototype.
-    shutter('both','open');
+    %shutter('both','open');
 
     % Show calibration frame
-    d.show(calibration_frame);
+    slm.Write_img(calibration_frame);
     pause(0.100);
     
     % Measure response
     response_original = camera_to_field(double(getsnapshotse(vid, exposure)));
     
     % Show shifted calibration frame
-    d.show(uint8(mod(int32(calibration_frame)+64,256)));
+    slm.Write_img(uint8(mod(int32(calibration_frame)+64,256)));
     pause(0.100);
 
     % Measure reference beam
     response_shifted = camera_to_field(double(getsnapshotse(vid, exposure)));
 
     % Show calibration frame again
-    d.show(calibration_frame);
+    slm.Write_img(calibration_frame);
     
     % Calculate average measured phase shift
     response_diff = conj(fft2s(response_original)).*fft2s(response_shifted);

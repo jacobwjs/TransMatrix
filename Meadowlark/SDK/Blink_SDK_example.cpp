@@ -213,7 +213,7 @@ static bool test_write_image(const uchar_vec& ramp1,
 			//okay = sdk.Write_image(board_number, image1, 512, false, false);
 			++j;
 			
-			okay = sdk.Write_overdrive_image(board_number, calibration.data(), 0, 0);
+			//okay = sdk.Write_overdrive_image(board_number, calibration.data(), 0, 0);
 			//Sleep(1000);
 			okay = sdk.Write_image(board_number, image2, 512, false, false);
 			//Sleep(1000);
@@ -296,7 +296,6 @@ int main(const int argc, char* const argv[])
 		sdk.SLM_power(true);	
 	}
 
-	sdk.
 
 	//// Create two vectors to hold values for two SLM images with opposite ramps.
 	uchar_vec ramp1(pixel_dimension * pixel_dimension);

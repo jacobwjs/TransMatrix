@@ -45,52 +45,53 @@ function shutter(name, state)
             error('Invalid state');
     end
     
-%     % Manual version (temporary for LO)
-%     if state==true
-%         str_manual = 'block'; 
-%     else
-%         str_manual = 'unblock';
-%     end
-%     if strcmpi(name,'both')
-%         name = 'all beams'; 
-%     else
-%         name = ['the ' name ' reference beam'];
-%     end
-%     disp(['Please ' str_manual ' ' name ', and then press any key.']);
-%     pause
-    
-    % --------------------------------- JWJS -----------------
-    % Open session using Matlab's data acquisition toolbox.
-    daqDevice = get(daq.getDevices());
-    deviceID = strcat(daqDevice(1).ID);
-    % ---------------------------------------
-    s = daq.createSession('ni');
-    
-     
-    
-
-    % Open channels
-    warning('off','daq:Session:onDemandOnlyChannelsAdded');
-    if strcmpi(name,'proximal') || strcmpi(name,'both')
-        s.addDigitalChannel(deviceID,'Port1/Line0','OutputOnly');
-    end
-    if strcmpi(name,'distal') ||  strcmpi(name,'both')
-        s.addDigitalChannel(deviceID,'Port1/Line2','OutputOnly');
-    end
-    warning('on','daq:Session:onDemandOnlyChannelsAdded');
-
-    % Send values
-    if ~strcmpi(name,'Both')
-        s.outputSingleScan(state);
+    % Manual version (temporary for LO)
+    display('Manual shutter...');
+    if state==true
+        str_manual = 'block'; 
     else
-        s.outputSingleScan([state state]);
+        str_manual = 'unblock';
     end
+    if strcmpi(name,'both')
+        name = 'all beams'; 
+    else
+        name = ['the ' name ' reference beam'];
+    end
+    disp(['Please ' str_manual ' ' name ', and then press any key.']);
+    pause
     
-    % Wait for the shutter to move
-    pause(0.5);
-
-    % Leave
-    s.release;   
+%     % --------------------------------- JWJS -----------------
+%     % Open session using Matlab's data acquisition toolbox.
+%     daqDevice = get(daq.getDevices());
+%     deviceID = strcat(daqDevice(1).ID);
+%     % ---------------------------------------
+%     s = daq.createSession('ni');
+%     
+%      
+%     
+% 
+%     % Open channels
+%     warning('off','daq:Session:onDemandOnlyChannelsAdded');
+%     if strcmpi(name,'proximal') || strcmpi(name,'both')
+%         s.addDigitalChannel(deviceID,'Port1/Line0','OutputOnly');
+%     end
+%     if strcmpi(name,'distal') ||  strcmpi(name,'both')
+%         s.addDigitalChannel(deviceID,'Port1/Line2','OutputOnly');
+%     end
+%     warning('on','daq:Session:onDemandOnlyChannelsAdded');
+% 
+%     % Send values
+%     if ~strcmpi(name,'Both')
+%         s.outputSingleScan(state);
+%     else
+%         s.outputSingleScan([state state]);
+%     end
+%     
+%     % Wait for the shutter to move
+%     pause(0.5);
+% 
+%     % Leave
+%     s.release;   
            
 end
 
