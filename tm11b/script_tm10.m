@@ -51,15 +51,17 @@ slm_params.fiber.x = 257;
 slm_params.fiber.y = 257;
 
 % DC in k-space (assuming a 512x512 grid)
-% x_offset = 256;
-% y_offset = 256;
-% freq_x = -101;
-% freq_y = 101;
-slm_params.freq.x = 146; % x_offset + freq_x = 155;
-slm_params.freq.y = 377; % y_offset + freq_y = 357;
+x_offset = 256;
+y_offset = 256;
+% Carrier frequency in k-space
+freq_x = -101;
+freq_y = 101;
+slm_params.freq.x = x_offset + freq_x;
+slm_params.freq.y = y_offset + freq_y;
 slm_params.freq.r1 = 60;
 slm_params.freq.r2 = slm_params.freq.r1;
 slm_params = recalculate_square_masks(slm_params);
+% FIXME:
 % slm_params.freq.mask1 = mask_circular([slm_params.ROI(4),slm_params.ROI(3)],...
 %     slm_params.freq.x,...
 %     slm_params.freq.y,...
@@ -95,11 +97,13 @@ holo_params.fiber.x = center_of(holo_params.ROI(3));
 holo_params.fiber.y = center_of(holo_params.ROI(4));
 
 % The center (pixel number x-axis and y-axis) of the selected order [k-space].
-holo_params.freq.x = 456;   
-holo_params.freq.y = 407;   
+% holo_params.freq.x = 456; Wrong order for CW alignment  
+% holo_params.freq.y = 407;   
+holo_params.freq.x = 93;   
+holo_params.freq.y = 140; 
 
 % The radius of the selected order in pixel count [k-space].
-holo_params.freq.r1 = 30;  
+holo_params.freq.r1 = 35;  
 holo_params.freq.r2 = slm_params.freq.r1; % Make them equal for the time being.
 
 holo_params.fiber.mask2 = mask_circular([holo_params.ROI(4) holo_params.ROI(3)],...
@@ -147,6 +151,7 @@ calibration_frame = modulation_slm(slm_params.ROI(3), ...
                                    slm_params.freq.y);
                       
 % Show calibration frame
+display('Writing calibration frame to SLM...');
 slm.Write_img(calibration_frame);
 
 
@@ -193,31 +198,49 @@ sequence_function = @(n)interleave_calibration(interleave_factor, ...
                                                calibration_frame, ...
                                                n);
 
-%% Pre-measurement checks
-% Check order
-figure;
-calibration_frame2 = uint8(mod(double(calibration_frame)+64,256));
+%% Pre-measurement check to see if the right order is selected
 slm.Write_img(calibration_frame);
-frame1 = get_frame(vid, holo_params.exposure, false);
+response_original = get_frame(vid, holo_params.exposure, false);
 
+calibration_frame2 = uint8(mod(double(calibration_frame)+64,256));
 slm.Write_img(calibration_frame2);
-frame2 = get_frame(vid, holo_params.exposure, false);
+response_shifted = get_frame(vid, holo_params.exposure, false);
 
-imagesc(angle(fft2(frame2).*conj(fft2(frame1))));
+figure;
+imagesc(angle(fft2(response_original).*conj(fft2(response_shifted))));
 title('Order verification');  
 
-% Check distal mask
-figure;
-imagesc(db(double(fftshift2(fft2(frame1))).*holo_params.freq.mask1));
-title('Mask verification');
+% % Calculate average measured phase shift.
+% response_diff = conj(fft2s(response_original)).*fft2s(response_shifted);
+% phase_average = sum(sum(abs(response_diff).^2 .* exp(1i*angle(response_diff))));
+% phase_average = exp(1i*angle(phase_average));
+% 
+% % Check if this was the right order.
+% %order_check = abs(phase_average-exp(0.5i*pi)) < abs(phase_average-exp(-0.5i*pi));
+% order_check = imag(phase_average)>0;
+% if ~order_check
+%     error('The wrong holographic order has been selected.');
+% end
 
-figure;
-imagesc(db(double(fftshift2(fft2(frame1))).*~holo_params.freq.mask1));
-title('Mask verification');
 
-% Confirmation
+%% Check the mask in Fourier domain to ensure it selects the entire selected
+%% holographic order.
+figure;
+hold on;
+subplot(2,2,1);
+imagesc(db(double(fftshift2(fft2(response_original))).*holo_params.freq.mask1));
+title('Mask verification');
+subplot(2,2,2);
+imagesc(db(double(fftshift2(fft2(response_original))).*~holo_params.freq.mask1));
+title('Mask verification');
+hold off;
+
+
+
+%% Confirmation to continue with the measurement.
 disp('Press a key to continue...');
 pause;
+
 
 %% Measurement
 % Background correction
@@ -252,20 +275,15 @@ for i=1:number_of_frames
     % Display pattern
     slm.Write_img(sequence_function(i));
     %pause(0.050);
-   
-    
+      
     % Grab frame
     trigger_camera(holo_params.exposure, [], 1, false);
     [frame, time(i)] = getdata(vid,1);
     
-
-    
     % Process frame and store
     data_rec(:,i) = camera_to_output(frame);
-    
-   
-    
-    
+     
+    % Display figures of the scanning process if DEBUG=true
     if (DEBUG)
         subplot(2,2,1);
         imagesc(sequence_function(i));
@@ -285,8 +303,6 @@ for i=1:number_of_frames
         drawnow;
     end
 
-    
-    
     % Progress meter
     progress(i,number_of_frames);
 end
@@ -403,56 +419,80 @@ stamp_str = [num2str(stamp(1)) '-' num2str(stamp(2),'%02d') '-' num2str(stamp(3)
 % if numel(str)==0
 %     str = name_of_script;
 % end
-% str = '_CW_experiment';
-% save2(['./data/' stamp_str ' ' str '.mat'],...
-%        '*',...
-%        '-bytes>100000000',...
-%        '-class:handle',...
-%        '-class:videoinput',...
-%        '-class:videosource',...
-%        '-class:gigeinput',...
-%        '-class:gigesource',...
-% 	   '-inversions',...
-%        '-input_function',...
-%        '-input_matrix',...
-%        '-output_matrix',...
-%        '-data_rec',...
-%        '-U',...
-%        '-S',...
-%        '-V',...
-%        '-Tb',...
-%        '-X_spots',...
-%        '-Y_spots',...
-%        '-V_sensor',...
-%        '-phase_factor',...
-%        '-phase_factor_v',...
-%        '-spot_function',...
-%        '-stack_bg',...
-%        '-stack_hdr',...
-%        '-y',...
-%        'T',...
-%        'Archive',...
-%        'experiments',...
-%        '/list-skipped');
+str = '_CW_experiment';
+save2(['./data/' stamp_str ' ' str '.mat'],...
+       '*',...
+       '-bytes>100000000',...
+       '-class:handle',...
+       '-class:videoinput',...
+       '-class:videosource',...
+       '-class:gigeinput',...
+       '-class:gigesource',...
+	   '-inversions',...
+       '-input_function',...
+       '-input_matrix',...
+       '-output_matrix',...
+       '-data_rec',...
+       '-U',...
+       '-S',...
+       '-V',...
+       '-Tb',...
+       '-X_spots',...
+       '-Y_spots',...
+       '-V_sensor',...
+       '-phase_factor',...
+       '-phase_factor_v',...
+       '-spot_function',...
+       '-stack_bg',...
+       '-stack_hdr',...
+       '-y',...
+       'T',...
+       'Archive',...
+       'experiments',...
+       '/list-skipped');
 
-% Scan the spot.
+% Form the scan.
 fiber_mask = holo_params.fiber.mask2;
-x_range = -200:5:200; %-40:1:40;
-y_range = -200:5:200; %-40:1:40;
+x_range = -100:10:100; %-40:1:40;
+y_range = -100:10:100; %-40:1:40;
+
+% Holds all of the SLM masks to form a range of spots. We want to pre-form
+% these to speed up the SLM update speed. Otherwise we are only able to
+% refresh the SLM as fast as we are able to calculate an FFT, reshape the
+% result, perform the matrix multiplication, and then form the iFFT and
+% reshape once again.
+spots = zeros(512, 512, length(x_range)*length(y_range));
+index = 0;
+
+% Boolean controlling how the scan is formed. Either line-by-line or raster
+% scanning.
+LINE_SCAN = false;
+RASTER_SCAN = ~LINE_SCAN; % We can only do one or the other type of scan.
+
+
 for i = x_range
+    
+    if (RASTER_SCAN)
+        y_range = -1*y_range;
+    end
+    
     for j = y_range
+        index = index + 1;
+        
         % Save desired target vector
-        %i = 0; j = 2;
-        %i = -36; j = 35;
-        %i = 123; j = -35;
+        % i = 0; j = 2;
+        % i = -36; j = 35;
+        % i = 123; j = -35;
         Y_target = field_to_output(pattern_spot(fiber_mask,j,i));
 
         % Calculate corresponding input pattern
         X_inv = inversions.T_inv * Y_target;
         
         % Calculate the required SLM mask
-        SLM_mask = input_to_slm(conj(X_inv));
+        %SLM_mask = input_to_slm(conj(X_inv));
+        SLM_mask = input_to_slm(X_inv);
         
+        spots(:,:,index) = SLM_mask;
         % Write to the SLM.
         slm.Write_img(SLM_mask);
         
@@ -466,6 +506,14 @@ for i = x_range
         %        experiments(i,j).Y_sim_exp   = T * experiments(i,j).X_inv_exp;
         
     end
+end
+
+% Upload the frames to the SLM and loop infinitely to perform the scan.
+while 1
+for i = 1:size(spots, 3)
+        slm.Write_img(spots(:,:,i));
+        %pause(0.025);
+end
 end
 
 % % stop(vid);
