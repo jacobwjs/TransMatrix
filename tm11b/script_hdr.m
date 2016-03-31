@@ -8,12 +8,18 @@
 
 %% Initialization routines.
 % Create the camera object if needed.
-%if ~exist('vid','var')
+if ~exist('vid','var')
     display('Initializing camera...');
     %vid = camera_mex('distal', 'ElectronicTrigger');
     clear vid;
     vid = camera_mex(2);
-%end
+end
+offsetX_pixels = 160; % Must be multiples of 32.
+offsetY_pixels = 50;
+num_pixels_X   = 928; % Must be multiples of 32.
+num_pixels_Y   = 928;
+vid.ROIPosition = [offsetX_pixels offsetY_pixels...
+                   num_pixels_X num_pixels_Y];
 
 % Create the slm object if needed.
 if ~exist('slm', 'var')
@@ -113,7 +119,7 @@ frame_exposure = exposures(ind_best);
 % Calculate the enhancement of the spot relative to the background. That
 % is, find the intensity in the focus spot relative the the background
 % (speckle in the image).
-[enhancement_dB, image_dB] = calculate_enhancement(img_a, img_b);
+[enhancement, image, percentage_pow_focus] = calculate_enhancement(img_a, img_b);
 
 % % Save
 % stamp = clock;
