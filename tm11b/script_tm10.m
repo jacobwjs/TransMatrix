@@ -14,7 +14,9 @@ DEBUG = false;
 % Shortcut functions
 myfft2  = @(x) fftshift(fft2(ifftshift(x)));
 myifft2 = @(x) fftshift(ifft2(ifftshift(x))); 
-radians_to_8bit = @(img)uint8(mod(angle(img)*256/(2*pi), 256));
+radians_to_8bit_phase = @(img)uint8(mod(angle(img)*256/(2*pi), 256));
+bits_to_radians = @(img) (exp(1i.*double(img)/255*2*pi));
+
 
 % Identify script
 name_of_script = mfilename;
@@ -26,25 +28,25 @@ run_test_patterns = false;
 slm = slm_device('meadowlark', run_test_patterns);
 
 % Initialize camera
+display('Initializing the camera...');
 vid = camera_mex('distal', 'ElectronicTrigger');
 % Define the ROI in the camera
-camera_frame_offsetX_pixels = 352;
-camera_frame_offsetY_pixels = 155;
+camera_frame_offsetX_pixels = 384;
+camera_frame_offsetY_pixels = 220;
 camera_width_pixels   = 544;
 camera_height_pixels  = 544;
 vid.ROIPosition = [camera_frame_offsetX_pixels camera_frame_offsetY_pixels...
                    camera_width_pixels camera_height_pixels];
-camera_exposure_us = 2000;
+camera_exposure_us = 5000;
+fprintf('Camera exposure set to %d usecs\n\n', camera_exposure_us);
 
 
 
 %% Calibration (configure fullscreen, camera and holography)
 % -------------------------------------------------------------------------
 % Define proximal-side calibration data
-x_slm = slm.x_pixels;
-y_slm = slm.y_pixels;
 slm_params = struct();
-slm_params.ROI = [0 0 x_slm y_slm];
+slm_params.ROI = [0 0 slm.x_pixels slm.y_pixels];
 slm_params.exposure = [];
 % Assume the image of the fiber facet on the SLM is centered.
 slm_params.fiber.x = 257;
@@ -54,8 +56,8 @@ slm_params.fiber.y = 257;
 x_offset = 256;
 y_offset = 256;
 % Carrier frequency in k-space
-freq_x = -101;
-freq_y = 101;
+freq_x = -111;
+freq_y = 111;
 slm_params.freq.x = x_offset + freq_x;
 slm_params.freq.y = y_offset + freq_y;
 slm_params.freq.r1 = 60;
@@ -99,11 +101,11 @@ holo_params.fiber.y = center_of(holo_params.ROI(4));
 % The center (pixel number x-axis and y-axis) of the selected order [k-space].
 % holo_params.freq.x = 456; Wrong order for CW alignment  
 % holo_params.freq.y = 407;   
-holo_params.freq.x = 93;   
-holo_params.freq.y = 140; 
+holo_params.freq.x = 110;   
+holo_params.freq.y = 150; 
 
 % The radius of the selected order in pixel count [k-space].
-holo_params.freq.r1 = 35;  
+holo_params.freq.r1 = 70;  
 holo_params.freq.r2 = slm_params.freq.r1; % Make them equal for the time being.
 
 holo_params.fiber.mask2 = mask_circular([holo_params.ROI(4) holo_params.ROI(3)],...
@@ -243,7 +245,8 @@ pause;
 
 
 %% Measurement
-% Background correction
+% Background correction (i.e. removal of the contribution from the
+% reference arm).
 slm.Write_img(255.*ones(size(calibration_frame2),'like',calibration_frame2));
 n_bg = 20;
 frame_bg = zeros(holo_params.ROI(4), holo_params.ROI(3), n_bg);
@@ -402,6 +405,8 @@ for i=1:numel(experiments)
     title({['Experiment #' num2str(i)], ...
            'Output'});
 end
+display('Writing constant phase mask to SLM...');
+slm.Write_img(255.*ones(512, 512));
 
 
 %% Finish
@@ -409,18 +414,21 @@ end
 toc(tic_global);
 total_time = toc(tic_global);
 
+
+%% Save data
 % Timestamp
 stamp = clock;
 stamp_str = [num2str(stamp(1)) '-' num2str(stamp(2),'%02d') '-' num2str(stamp(3),'%02d') ' ' num2str(stamp(4),'%02d') '-' num2str(stamp(5),'%02d') '-' num2str(round(stamp(6)),'%02d')];
 
-%% Save data
+display('Saving data for later use...');
 % Ask for name of file
 % str = input('Enter a description for this dataset (or CTRL-C to stop without saving):\n','s');
 % if numel(str)==0
 %     str = name_of_script;
 % end
 str = '_CW_experiment';
-save2(['./data/' stamp_str ' ' str '.mat'],...
+data_filename = ['./data/' stamp_str ' ' str '.mat'];
+save2(data_filename,...
        '*',...
        '-bytes>100000000',...
        '-class:handle',...
@@ -451,71 +459,153 @@ save2(['./data/' stamp_str ' ' str '.mat'],...
        'experiments',...
        '/list-skipped');
 
-% Form the scan.
-fiber_mask = holo_params.fiber.mask2;
-x_range = -100:10:100; %-40:1:40;
-y_range = -100:10:100; %-40:1:40;
+   
 
-% Holds all of the SLM masks to form a range of spots. We want to pre-form
-% these to speed up the SLM update speed. Otherwise we are only able to
-% refresh the SLM as fast as we are able to calculate an FFT, reshape the
-% result, perform the matrix multiplication, and then form the iFFT and
-% reshape once again.
-spots = zeros(512, 512, length(x_range)*length(y_range));
-index = 0;
+   
+   
+%% Form the scan.
+% display('Computing the scan sequence for the SLM...');
+% fiber_mask = holo_params.fiber.mask2;
+% x_range = -50:1:50; 
+% y_range = -50:1:50; 
+% 
+% % Holds all of the SLM masks to form a range of spots. We want to pre-form
+% % these to speed up the SLM update speed. Otherwise we are only able to
+% % refresh the SLM as fast as we are able to calculate an FFT, reshape the
+% % result, perform the matrix multiplication, and then form the iFFT and
+% % reshape once again.
+% spots = uint8(zeros(slm.x_pixels, slm.y_pixels, length(x_range)*length(y_range)));
+% index = 0;
+% 
+% % Boolean controlling how the scan is formed. Either line-by-line or raster
+% % scanning.
+% LINE_SCAN = false;
+% RASTER_SCAN = ~LINE_SCAN; % We can only do one or the other type of scan.
+% if (RASTER_SCAN)
+%     display('(Raster scan)');
+% else
+%     display('(Line-by-line scan)');
+% end
+% 
+% % figure;
+% % hold on;
+% progress(0, length(x_range)*length(y_range));
+% for i = x_range
+%     
+%     if (RASTER_SCAN)
+%         y_range = -1*y_range;
+%     end
+%     
+%     for j = y_range
+%         index = index + 1;
+%         
+%         % Save desired target vector
+%          i = 0; j = 0;
+%         % i = -36; j = 35;
+%         % i = 123; j = -35;
+%         Y_target = field_to_output(pattern_spot(fiber_mask,j,i));
+% 
+%         % Calculate corresponding input pattern
+%         X_inv = inversions.T_inv * Y_target;
+%         
+%         % Calculate the required SLM mask
+%         %SLM_mask = input_to_slm(conj(X_inv));
+%         SLM_mask = uint8(input_to_slm(X_inv));
+%         
+%         spots(:,:,index) = SLM_mask;
+%         % Write to the SLM.
+%         slm.Write_img(SLM_mask);
+%         
+%         
+%         %        % From the SLM mask, get the experimental input that is actually sent to the fiber
+%         %        % (there may be distortions due to the use of a phase-only mask)
+%         %        experiments(i,j).X_inv_exp   = slm_to_input(experiments(i,j).SLM);
+%         %
+%         %        % Simulate the output, both for the theoretical input and the
+%         %        % experimental input
+%         %        experiments(i,j).Y_sim       = T * experiments(i,j).X_inv;
+%         %        experiments(i,j).Y_sim_exp   = T * experiments(i,j).X_inv_exp;
+%         
+%     end
+%     progress(index, length(x_range)*length(y_range));
+% end
+% 
+% display('Adding spot formation data to .mat file');
+% save(data_filename, 'spots','-append');
 
-% Boolean controlling how the scan is formed. Either line-by-line or raster
-% scanning.
-LINE_SCAN = false;
-RASTER_SCAN = ~LINE_SCAN; % We can only do one or the other type of scan.
 
 
-for i = x_range
-    
-    if (RASTER_SCAN)
-        y_range = -1*y_range;
-    end
-    
-    for j = y_range
-        index = index + 1;
-        
-        % Save desired target vector
-        % i = 0; j = 2;
-        % i = -36; j = 35;
-        % i = 123; j = -35;
-        Y_target = field_to_output(pattern_spot(fiber_mask,j,i));
 
-        % Calculate corresponding input pattern
-        X_inv = inversions.T_inv * Y_target;
-        
-        % Calculate the required SLM mask
-        %SLM_mask = input_to_slm(conj(X_inv));
-        SLM_mask = input_to_slm(X_inv);
-        
-        spots(:,:,index) = SLM_mask;
-        % Write to the SLM.
-        slm.Write_img(SLM_mask);
-        
-        %        % From the SLM mask, get the experimental input that is actually sent to the fiber
-        %        % (there may be distortions due to the use of a phase-only mask)
-        %        experiments(i,j).X_inv_exp   = slm_to_input(experiments(i,j).SLM);
-        %
-        %        % Simulate the output, both for the theoretical input and the
-        %        % experimental input
-        %        experiments(i,j).Y_sim       = T * experiments(i,j).X_inv;
-        %        experiments(i,j).Y_sim_exp   = T * experiments(i,j).X_inv_exp;
-        
-    end
-end
+%%
+% % 
+% % Anonymous function that wraps all the steps up to form a spot. It takes
+% % as an argument the 'x,y' coordinates of where to form the spot in the
+% % image.
+% % NOTE:
+% %  x=0, y=0 forms a spot in the middle of the image.  
+% spot_phase_mask = @(x,y) uint8(input_to_slm(inversions.T_inv * ...
+%                                             field_to_output(pattern_spot(fiber_mask, x, y))));
+% 
+% slm.Write_img(spot_phase_mask(0, 0));
+% 
+% % % Upload the frames to the SLM and loop infinitely to perform the scan.
+% while 1
+% for i = 1:10:size(spots, 3)
+%         slm.Write_img(spots(:,:,i));
+%         %pause(0.025);
+% end
+% end
 
-% Upload the frames to the SLM and loop infinitely to perform the scan.
-while 1
-for i = 1:size(spots, 3)
-        slm.Write_img(spots(:,:,i));
-        %pause(0.025);
-end
-end
 
+
+
+
+%% Scan a single spot using the memory effect.
+% %% NOTE: Only valid with the multicore fibers, otherwise information is scrambled.
+% while 1
+% for i = -10:2:10
+%     grating = zeros(512,512);
+%     grating(256+i,256) = 1;
+%     carrier_phase = myifft2(grating);
+%     carrier_phase = radians_to_8bit_phase(carrier_phase);
+%     slm.Write_img(uint8(spots(:,:,10)) + carrier_phase);
+%     pause(0.15);
+% end
+% end
+
+
+
+
+%% Propagate the spot a given distance.
+% magnification_at_100um = 21.85;
+% % Function accepts the output that you would like to propagate. For example,
+% % to propagate a spot, send in a matrix (match camera frame dimensions used
+% % to form the transmission matrix) with a single pixel set to 1.
+% output_to_propagate = zeros(camera_width_pixels, camera_height_pixels);
+% output_to_propagate(round(camera_width_pixels/2),...
+%                     round(camera_height_pixels/2)) = 1;
+%        
+% distances = [1:1:6].*25.4e-6;
+% camera_pixel_pitch = 8e-6;
+% lambda = 785e-9;
+% [fields] = propagate_v2(output_to_propagate, ...
+%                        distances, ... 
+%                        camera_pixel_pitch, ...
+%                        lambda, ...
+%                        magnification_at_100um);
+% Y_targets = field_to_output(fields);
+% X_invs = inversions.T_inv * Y_targets;
+% SLM_propagated_masks = uint8(input_to_slm(X_invs));
+% while 1
+%     for i=1:size(SLM_propagated_masks, 3)
+%         slm.Write_img(SLM_propagated_masks(:,:,i));
+%         pause(0.25);
+%     end
+% end
+
+
+
+%% Align the delay line (i.e. reference arm) using the Fourier domain as feedback.
 % % stop(vid);
 % % set(vid.source, 'ExposureMode', 'TriggerWidth');
 % % start(vid);

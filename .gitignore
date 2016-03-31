@@ -294,3 +294,5 @@ tm11b/DAQmxLibrary_warnings.txt
 tm11b/video.transposed.dat
 *.dat
 tm11b/DAQmxLibrary_warnings.txt
+tm11b/tfr_time.txt
+

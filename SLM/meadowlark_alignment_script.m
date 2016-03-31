@@ -78,7 +78,7 @@ drawnow;
 while 1
     %for i = -20:1:20
         i = 10;
-        for j = -20:1:20
+        for j = -80:5:80
             carrier = zeros(dims, dims);
             carrier(DC_offset + kx + i,...
                 DC_offset + ky + j) = 1;
