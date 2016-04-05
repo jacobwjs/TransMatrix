@@ -63,6 +63,7 @@ stack_bg = getsnapshotse(vid, exposures, [], sync_flag);
 shutter('proximal','pass');
 
 
+
 % 3-dimensional
 stack_bg  = reshape(stack_bg(:,:,1,:),  [size(stack_bg,1) size(stack_bg,2) size(stack_bg,4)]);
 stack_hdr = reshape(stack_hdr(:,:,1,:), [size(stack_hdr,1) size(stack_hdr,2) size(stack_hdr,4)]);
@@ -120,6 +121,8 @@ frame_exposure = exposures(ind_best);
 % is, find the intensity in the focus spot relative the the background
 % (speckle in the image).
 [enhancement, image, percentage_pow_focus] = calculate_enhancement(img_a, img_b);
+
+
 
 % % Save
 % stamp = clock;

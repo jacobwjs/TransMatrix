@@ -5,6 +5,12 @@
 % v10: SLM in configuration without beamsplitter (for correlation)
 % - Damien Loterie (08/2015)
 
+close all
+clear all
+clc
+
+
+
 %% Initialize
 % Cleanup
 reset_all;
@@ -60,7 +66,7 @@ freq_x = -111;
 freq_y = 111;
 slm_params.freq.x = x_offset + freq_x;
 slm_params.freq.y = y_offset + freq_y;
-slm_params.freq.r1 = 60;
+slm_params.freq.r1 = 70;
 slm_params.freq.r2 = slm_params.freq.r1;
 slm_params = recalculate_square_masks(slm_params);
 % FIXME:
@@ -101,8 +107,8 @@ holo_params.fiber.y = center_of(holo_params.ROI(4));
 % The center (pixel number x-axis and y-axis) of the selected order [k-space].
 % holo_params.freq.x = 456; Wrong order for CW alignment  
 % holo_params.freq.y = 407;   
-holo_params.freq.x = 110;   
-holo_params.freq.y = 150; 
+holo_params.freq.x = 115;   
+holo_params.freq.y = 155; 
 
 % The radius of the selected order in pixel count [k-space].
 holo_params.freq.r1 = 70;  
@@ -473,159 +479,159 @@ slm.Write_img(spot_phase_mask(0, 0));
    
    
 %% Form the scan.
-% % display('Computing the scan sequence for the SLM...');
-% % fiber_mask = holo_params.fiber.mask2;
-% x_range = -50:10:50; 
-% y_range = -50:10:50; 
+% display('Computing the scan sequence for the SLM...');
+% fiber_mask = holo_params.fiber.mask2;
+x_range = -30:10:30; 
+y_range = -30:10:30; 
+
+% Holds all of the SLM masks to form a range of spots. We want to pre-form
+% these to speed up the SLM update speed. Otherwise we are only able to
+% refresh the SLM as fast as we are able to calculate an FFT, reshape the
+% result, perform the matrix multiplication, and then form the iFFT and
+% reshape once again.
+spots = struct();
+spots.working_dist_100um = uint8(zeros(slm.x_pixels, slm.y_pixels, length(x_range)*length(y_range)));
+spots.working_dist_200um = uint8(zeros(slm.x_pixels, slm.y_pixels, length(x_range)*length(y_range)));
+spots.working_dist_300um = uint8(zeros(slm.x_pixels, slm.y_pixels, length(x_range)*length(y_range)));
+spots.working_dist_400um = uint8(zeros(slm.x_pixels, slm.y_pixels, length(x_range)*length(y_range)));
+spots.working_dist_500um = uint8(zeros(slm.x_pixels, slm.y_pixels, length(x_range)*length(y_range)));
+
+index = 0;
+
+% Boolean controlling how the scan is formed. Either line-by-line or raster
+% scanning.
+LINE_SCAN = false;
+RASTER_SCAN = ~LINE_SCAN; % We can only do one or the other type of scan.
+if (RASTER_SCAN)
+    display('(Raster scan)');
+else
+    display('(Line-by-line scan)');
+end
+
+% These values were found from a set of previous experiments and only make
+% sense to use with the imaging system in place to image the focus onto the
+% camera at different distances. If anything changes these values are
+% nonsensical. 
+magnification_at_200um = 21.5;
+distance_200um = 4*25.4e-6;
+magnification_at_300um = 19.65;
+distance_300um = 8*25.4e-6;
+magnification_at_400um = 18.3;
+distance_400um = 12*25.4e-6;
+magnification_at_500um = 17.25;
+distance_500um = 16*25.4e-6;
+
+% Needed for propagation.
+camera_pixel_pitch = 8e-6;
+lambda = 785e-9;
+
+progress(0, length(x_range)*length(y_range));
+for i = x_range
+    
+    if (RASTER_SCAN)
+        y_range = -1*y_range;
+    end
+    
+    for j = y_range
+        index = index + 1;
+        
+        % This must match the frame size used to form the transmission
+        % matrix, otherwise the masking and indexing will fail below.
+        output_to_propagate = zeros(camera_width_pixels, camera_height_pixels);
+        % Form a 'focus spot' as an output.
+        output_to_propagate(round(camera_width_pixels/2)+i,...
+                            round(camera_width_pixels/2)+j) = 1; 
+        
+        % Initialize fields array.
+        fields = [];
+        
+
+        % If trained at a location (e.g. 100 um) then we don't need to
+        % propagate.
+        % FIXME:
+        % - Why must 'i', and 'j' be swapped to match the indexing in
+        % 'output_to_propagate'. Otherwise the spot is scanned differently.
+        field_100um = pattern_spot(fiber_mask,j,i);
+        
+        % Otherwise we need to propagate for each distance.
+        [field_200um] = propagate_v2(output_to_propagate, ...
+                                     distance_200um, ... 
+                                     camera_pixel_pitch, ...
+                                     lambda, ...
+                                     magnification_at_200um);
+        [field_300um] = propagate_v2(output_to_propagate, ...
+                                     distance_300um, ... 
+                                     camera_pixel_pitch, ...
+                                     lambda, ...
+                                     magnification_at_300um);
+        [field_400um] = propagate_v2(output_to_propagate, ...
+                                     distance_400um, ... 
+                                     camera_pixel_pitch, ...
+                                     lambda, ...
+                                     magnification_at_400um);
+        [field_500um] = propagate_v2(output_to_propagate, ...
+                                     distance_500um, ... 
+                                     camera_pixel_pitch, ...
+                                     lambda, ...
+                                     magnification_at_500um);                         
+        
+        
+        % Assign all the fields to be converted for each spot location and
+        % depth.
+        fields(:,:,1) = field_100um;
+        fields(:,:,2) = field_200um;
+        fields(:,:,3) = field_300um;
+        fields(:,:,4) = field_400um;
+        fields(:,:,5) = field_500um;
+               
+        
+        % Walk through the transmission matrix backwards to get the mask
+        % needed for the SLM to form the output we wanted.
+        Y_targets = field_to_output(fields);
+        X_invs = inversions.T_inv * Y_targets;
+        SLM_propagated_masks = uint8(input_to_slm(X_invs));
+        
+        % Assign each mask for each spot to the given depth for later use.
+        spots.working_dist_100um(:,:,index) = SLM_propagated_masks(:,:,1);
+        spots.working_dist_200um(:,:,index) = SLM_propagated_masks(:,:,2);
+        spots.working_dist_300um(:,:,index) = SLM_propagated_masks(:,:,3);
+        spots.working_dist_400um(:,:,index) = SLM_propagated_masks(:,:,4);
+        spots.working_dist_500um(:,:,index) = SLM_propagated_masks(:,:,5);
+        
+        
+        
+%         % Save desired target vector
+%         % i = 0; j = 0;
+%         % i = -36; j = 35;
+%         % i = 123; j = -35;
+%         Y_target = field_to_output(pattern_spot(fiber_mask,j,i));
 % 
-% % Holds all of the SLM masks to form a range of spots. We want to pre-form
-% % these to speed up the SLM update speed. Otherwise we are only able to
-% % refresh the SLM as fast as we are able to calculate an FFT, reshape the
-% % result, perform the matrix multiplication, and then form the iFFT and
-% % reshape once again.
-% spots = struct();
-% spots.working_dist_100um = uint8(zeros(slm.x_pixels, slm.y_pixels, length(x_range)*length(y_range)));
-% spots.working_dist_200um = uint8(zeros(slm.x_pixels, slm.y_pixels, length(x_range)*length(y_range)));
-% spots.working_dist_300um = uint8(zeros(slm.x_pixels, slm.y_pixels, length(x_range)*length(y_range)));
-% spots.working_dist_400um = uint8(zeros(slm.x_pixels, slm.y_pixels, length(x_range)*length(y_range)));
-% spots.working_dist_500um = uint8(zeros(slm.x_pixels, slm.y_pixels, length(x_range)*length(y_range)));
-% 
-% index = 0;
-% 
-% % Boolean controlling how the scan is formed. Either line-by-line or raster
-% % scanning.
-% LINE_SCAN = false;
-% RASTER_SCAN = ~LINE_SCAN; % We can only do one or the other type of scan.
-% if (RASTER_SCAN)
-%     display('(Raster scan)');
-% else
-%     display('(Line-by-line scan)');
-% end
-% 
-% % These values were found from a set of previous experiments and only make
-% % sense to use with the imaging system in place to image the focus onto the
-% % camera at different distances. If anything changes these values are
-% % nonsensical. 
-% magnification_at_200um = 21.5;
-% distance_200um = 4*25.4e-6;
-% magnification_at_300um = 19.65;
-% distance_300um = 8*25.4e-6;
-% magnification_at_400um = 18.3;
-% distance_400um = 12*25.4e-6;
-% magnification_at_500um = 17.25;
-% distance_500um = 16*25.4e-6;
-% 
-% % Needed for propagation.
-% camera_pixel_pitch = 8e-6;
-% lambda = 785e-9;
-% 
-% progress(0, length(x_range)*length(y_range));
-% for i = x_range
-%     
-%     if (RASTER_SCAN)
-%         y_range = -1*y_range;
-%     end
-%     
-%     for j = y_range
-%         index = index + 1;
+%         % Calculate corresponding input pattern
+%         X_inv = inversions.T_inv * Y_target;
 %         
-%         % This must match the frame size used to form the transmission
-%         % matrix, otherwise the masking and indexing will fail below.
-%         output_to_propagate = zeros(camera_width_pixels, camera_height_pixels);
-%         % Form a 'focus spot' as an output.
-%         output_to_propagate(round(camera_width_pixels/2)+i,...
-%                             round(camera_width_pixels/2)+j) = 1; 
+%         % Calculate the required SLM mask
+%         %SLM_mask = input_to_slm(conj(X_inv));
+%         SLM_mask = uint8(input_to_slm(X_inv));
 %         
-%         % Initialize fields array.
-%         fields = [];
+%         spots(:,:,index) = SLM_mask;
 %         
-% 
-%         % If trained at a location (e.g. 100 um) then we don't need to
-%         % propagate.
-%         % FIXME:
-%         % - Why must 'i', and 'j' be swapped to match the indexing in
-%         % 'output_to_propagate'. Otherwise the spot is scanned differently.
-%         field_100um = pattern_spot(fiber_mask,j,i);
-%         
-%         % Otherwise we need to propagate for each distance.
-%         [field_200um] = propagate_v2(output_to_propagate, ...
-%                                      distance_200um, ... 
-%                                      camera_pixel_pitch, ...
-%                                      lambda, ...
-%                                      magnification_at_200um);
-%         [field_300um] = propagate_v2(output_to_propagate, ...
-%                                      distance_300um, ... 
-%                                      camera_pixel_pitch, ...
-%                                      lambda, ...
-%                                      magnification_at_300um);
-%         [field_400um] = propagate_v2(output_to_propagate, ...
-%                                      distance_400um, ... 
-%                                      camera_pixel_pitch, ...
-%                                      lambda, ...
-%                                      magnification_at_400um);
-%         [field_500um] = propagate_v2(output_to_propagate, ...
-%                                      distance_500um, ... 
-%                                      camera_pixel_pitch, ...
-%                                      lambda, ...
-%                                      magnification_at_500um);                         
-%         
-%         
-%         % Assign all the fields to be converted for each spot location and
-%         % depth.
-%         fields(:,:,1) = field_100um;
-%         fields(:,:,2) = field_200um;
-%         fields(:,:,3) = field_300um;
-%         fields(:,:,4) = field_400um;
-%         fields(:,:,5) = field_500um;
-%                
-%         
-%         % Walk through the transmission matrix backwards to get the mask
-%         % needed for the SLM to form the output we wanted.
-%         Y_targets = field_to_output(fields);
-%         X_invs = inversions.T_inv * Y_targets;
-%         SLM_propagated_masks = uint8(input_to_slm(X_invs));
-%         
-%         % Assign each mask for each spot to the given depth for later use.
-%         spots.working_dist_100um(:,:,index) = SLM_propagated_masks(:,:,1);
-%         spots.working_dist_200um(:,:,index) = SLM_propagated_masks(:,:,2);
-%         spots.working_dist_300um(:,:,index) = SLM_propagated_masks(:,:,3);
-%         spots.working_dist_400um(:,:,index) = SLM_propagated_masks(:,:,4);
-%         spots.working_dist_500um(:,:,index) = SLM_propagated_masks(:,:,5);
-%         
-%         
-%         
-% %         % Save desired target vector
-% %         % i = 0; j = 0;
-% %         % i = -36; j = 35;
-% %         % i = 123; j = -35;
-% %         Y_target = field_to_output(pattern_spot(fiber_mask,j,i));
-% % 
-% %         % Calculate corresponding input pattern
-% %         X_inv = inversions.T_inv * Y_target;
-% %         
-% %         % Calculate the required SLM mask
-% %         %SLM_mask = input_to_slm(conj(X_inv));
-% %         SLM_mask = uint8(input_to_slm(X_inv));
-% %         
-% %         spots(:,:,index) = SLM_mask;
-% %         
-% %         % Write to the SLM.
-% %         slm.Write_img(SLM_mask);
-%         
-%         
-% %        % From the SLM mask, get the experimental input that is actually sent to the fiber
-% %        % (there may be distortions due to the use of a phase-only mask)
-% %        experiments(i,j).X_inv_exp   = slm_to_input(experiments(i,j).SLM);
-% %
-% %        % Simulate the output, both for the theoretical input and the
-% %        % experimental input
-% %        experiments(i,j).Y_sim       = T * experiments(i,j).X_inv;
-% %        experiments(i,j).Y_sim_exp   = T * experiments(i,j).X_inv_exp;
-%         
-%     end
-%     progress(index, length(x_range)*length(y_range));
-% end
-% 
+%         % Write to the SLM.
+%         slm.Write_img(SLM_mask);
+        
+        
+%        % From the SLM mask, get the experimental input that is actually sent to the fiber
+%        % (there may be distortions due to the use of a phase-only mask)
+%        experiments(i,j).X_inv_exp   = slm_to_input(experiments(i,j).SLM);
+%
+%        % Simulate the output, both for the theoretical input and the
+%        % experimental input
+%        experiments(i,j).Y_sim       = T * experiments(i,j).X_inv;
+%        experiments(i,j).Y_sim_exp   = T * experiments(i,j).X_inv_exp;
+        
+    end
+    progress(index, length(x_range)*length(y_range));
+end
+
 % display('Adding spot formation data to .mat file');
 % save(data_filename, 'spots','-append');
 
@@ -665,7 +671,7 @@ slm.Write_img(spot_phase_mask(0, 0));
 % end
 % end
 
-
+break
 
 
 %% Propagate the spot a given distance.
@@ -683,22 +689,27 @@ vid.ROIPosition = [camera_frame_offsetX_pixels camera_frame_offsetY_pixels...
 output_to_propagate = zeros(camera_width_pixels, camera_height_pixels);
 output_to_propagate(round(camera_width_pixels/2),...
                     round(camera_height_pixels/2)) = 1;
-       
+
+                
+                
+distance_100um = 4*25.4e-6;                
+                
 %magnification_at_200um = 21.5;
-%distance_200um = 4*25.4e-6;
+distance_200um = 8*25.4e-6;
 
 %magnification_at_300um = 19.65;
-%distance_300um = 8*25.4e-6;
+distance_300um = 12*25.4e-6;
 
 %magnification_at_400um = 18.3;
-%distance_400um = 12*25.4e-6;
+distance_400um = 16*25.4e-6;
 
 %magnification_at_500um = 17.25;
-%distance_500um = 16*25.4e-6;
+distance_500um = 20*25.4e-6;
 
-magnifications = [15:0.15:23];
+magnifications = [15:0.15:26];
 %distances = [1:1:6].*25.4e-6;
-distances = distance_500um;
+
+distances = distance_300um
 
 camera_pixel_pitch = 8e-6;
 lambda = 785e-9;
