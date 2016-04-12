@@ -133,6 +133,13 @@ end % end (CREATE_SPOTS)
 
 
 %% Scan spots and record data from attached detector.
+%
+% There are two types of detection due to the behavior of different detectors.
+% 1) Analog signal
+% 2) Edge counting
+% To accomodate this, we set the DAQ (PCIe-6321) to record these two types
+% of signals.
+
 
 % % Use the data acquisition toolbox in Matlab to inialize a session.
 % % XXX:
@@ -148,12 +155,79 @@ end % end (CREATE_SPOTS)
 % figure, plot(data)
 
 
+% %% Record analog signal (PMT or Thoralabs APD)
+% % Damien's front end to the DLL's provided by NI.
+% % Setup recording parameters
+% samplesPerPulse = 256;
+% pulsesPerFrame  = 3;
+% samplesPerFrame = samplesPerPulse*pulsesPerFrame;
+% 
+% vsyncRate = 59.936540749;
+% delayTime = 23917.92497267230e-6;
+% vsyncTime = 1/vsyncRate;
+% averagingTime = vsyncTime/16;
+% repeatTime = vsyncTime/4;
+% 
+% N_spots = size(spots.working_dist_100um, 3);
+% 
+% clear chan;
+% max_volt_range = 2;
+% min_volt_range = 0;
+% chan = DAQmxAnalogInput('Dev1/ai1','RSE', min_volt_range, max_volt_range);
+% chan.CfgSampClkTiming('',samplesPerPulse/averagingTime,'rising','finite',samplesPerPulse);
+% chan.CfgDigEdgeStartTrig('/Dev1/PFI9','falling');
+% chan.StartTriggerRetriggerable = true;
+% chan.InputBufferSize = samplesPerFrame*(N_spots+1);
+% 
+% 
+% % Start the acquisition channel.
+% start(chan);
+% 
+% % FIXME:
+% % - Should spawn a thread to run this
+% %  p = parpool(1);
+% %    f = parfeval(p,@dx_fullscreen_parallel, 1, {sequence_function, number_of_frames, divider}, [], []);
+% for i = 1:N_spots
+%     slm_phase_mask = spots.working_dist_200um(:,:,i);
+%     slm.Write_img(slm_phase_mask);
+%     
+%     % Pause for a short time with this phase map (i.e. spot) to collect
+%     % flouresence.
+%     pause(0.125);    
+% end
+% 
+% % Read sensor
+% %V_sensor = zeros(samplesPerFrame,numel(y_range),numel(x_range),N_spots/(numel(y_range)*numel(x_range)));
+% % for i=1:N_spots
+% %     V_sensor((1+(i-1)*samplesPerFrame):(i*samplesPerFrame)) = getdata(chan,samplesPerFrame);
+% % end
+% 
+% DEBUG = true;
+% 
+% if (DEBUG) 
+%     cmap = hsv(N_spots);  % Creates a N_spots-by-3 set of colors from the HSV colormap
+%     figure, hold on;
+% end
+% 
+% % Holds the resulting data from the detector.
+% pmt_data = zeros(samplesPerPulse, N_spots);
+% 
+% for i=1:N_spots
+%     pmt_data(:, i) = getdata(chan, samplesPerPulse);
+%     if (DEBUG)
+%         plot(pmt_data(:, 11), 'Color', cmap(i,:));  
+%         drawnow;
+%     end
+%     %pause(0.025)
+% end
+% stop(chan);
+% 
+% % FIXME:
+% % - verify sample count and implement averaging.
+% %V_avg = shiftdim(mean(V_sensor,1),1);
 
-% Damien's front end to the DLL's provided by NI.
-% Setup recording parameters
-samplesPerPulse = 256;
-pulsesPerFrame  = 3;
-samplesPerFrame = samplesPerPulse*pulsesPerFrame;
+
+%% Record using the photon counting APD.
 
 vsyncRate = 59.936540749;
 delayTime = 23917.92497267230e-6;
@@ -163,58 +237,25 @@ repeatTime = vsyncTime/4;
 
 N_spots = size(spots.working_dist_100um, 3);
 
-clear chan;
-chan = DAQmxAnalogInput('Dev1/ai0','RSE',0,V_range);
+clear chan_digital_counter;
+max_volt_range = 2;
+min_volt_range = 0;
+DAQ_counter_channel = 'Dev1/ctr1';
+edge = 'rising'; % 'rising' or 'falling'
+cnt_direction = 'up'; % 'up' or 'down'
+initial_cnt = 0; 
+chan_digital_counter = DAQmxCounterInputEdges(DAQ_counter_channel, ...
+                                              edge, ...
+                                              cnt_direction, ...
+                                              initial_cnt);
+
+                                          
 chan.CfgSampClkTiming('',samplesPerPulse/averagingTime,'rising','finite',samplesPerPulse);
-chan.CfgDigEdgeStartTrig('/Dev1/PFI9','rising');
+chan.CfgDigEdgeStartTrig('/Dev1/PFI9','falling');
 chan.StartTriggerRetriggerable = true;
 chan.InputBufferSize = samplesPerFrame*(N_spots+1);
 
-% Start the acquisition channel.
-start(chan);
 
-% FIXME:
-% - Should spawn a thread to run this
-%  p = parpool(1);
-%    f = parfeval(p,@dx_fullscreen_parallel, 1, {sequence_function, number_of_frames, divider}, [], []);
-for i = 1:N_spots
-    slm_phase_mask = spots.working_dist_200um(:,:,i);
-    slm.Write_img(slm_phase_mask);
-    
-    % Pause for a short time with this phase map (i.e. spot) to collect
-    % flouresence.
-    %pause(1/vsyncRate);    
-end
-
-% Read sensor
-%V_sensor = zeros(samplesPerFrame,numel(y_range),numel(x_range),N_spots/(numel(y_range)*numel(x_range)));
-% for i=1:N_spots
-%     V_sensor((1+(i-1)*samplesPerFrame):(i*samplesPerFrame)) = getdata(chan,samplesPerFrame);
-% end
-
-DEBUG = true;
-
-if (DEBUG) 
-    cmap = hsv(N_spots);  % Creates a N_spots-by-3 set of colors from the HSV colormap
-    figure, hold on;
-end
-
-% Holds the resulting data from the detector.
-pmt_data = zeros(samplesPerPulse, N_spots);
-
-for i=1:N_spots
-    pmt_data(:, i) = getdata(chan, samplesPerPulse);
-    if (DEBUG)
-        plot(pmt_data(:, i), 'Color', cmap(i,:));  
-        drawnow;
-    end
-    %pause(0.025)
-end
-stop(chan);
-
-% FIXME:
-% - verify sample count and implement averaging.
-%V_avg = shiftdim(mean(V_sensor,1),1);
 
 
 

@@ -5,10 +5,7 @@ function DAQmxLoadLibrary()
     if ~libisloaded('NIDAQmx')
         % Load library
         warning('off','MATLAB:loadlibrary:TypeNotFound');
-        [notfound, warnings] = loadlibrary('nicaiu.dll',...
-                                           'C:\Program Files (x86)\National Instruments\NI-DAQ\DAQmx ANSI C Dev\include\NIDAQmx.h',...
-                                           'alias',...
-                                           'NIDAQmx');
+        [notfound, warnings] = loadlibrary('nicaiu.dll','C:\Program Files (x86)\National Instruments\NI-DAQ\DAQmx ANSI C Dev\include\NIDAQmx.h','alias','NIDAQmx');
         warning('on','MATLAB:loadlibrary:TypeNotFound');
         
         % Write warnings and errors

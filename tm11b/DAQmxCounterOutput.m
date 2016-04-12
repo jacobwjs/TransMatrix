@@ -272,7 +272,7 @@ classdef DAQmxCounterOutput < DAQmxChannel
     %%%%%%%%%%%%%
     % CONSTANTS %
     %%%%%%%%%%%%%
-    properties (Constant, Access=private)
+    properties (Constant, GetAccess=public) %Access=private)
         % Counter output limit values
         % Note: The values below are hardcoded for my NI PCIe-6323.
         %       You may have to change them for other cards.

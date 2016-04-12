@@ -79,12 +79,12 @@ classdef DAQmxChannel < DAQmxTask
     %%%%%%%%%%%%%%%%%%%%
     properties (Dependent, SetAccess=public, GetAccess=public)
         StartTriggerType;
-        TriggerEdge;
+        StartTriggerEdge;
         StartTriggerSource;
         StartTriggerRetriggerable;
         SampleMode;
         SampleQuantity;
-        SampleClockActiveEdge;
+        SampleClockEdge;
         SampleClockRate;
         SampleClockSource;
         TimingType;
@@ -121,9 +121,9 @@ classdef DAQmxChannel < DAQmxTask
             DAQmxErrorCheck(ExitCode);
         end
         
-        % TriggerEdge
-        function res = get.TriggerEdge(obj)
-            % Get TriggerEdge
+        % StartTriggerEdge
+        function res = get.StartTriggerEdge(obj)
+            % Get StartTriggerEdge
             [ExitCode, ~, code] = calllib('NIDAQmx', ...
                                           'DAQmxGetStartTrigType', ...
                                           obj.TaskHandle, ...
@@ -135,11 +135,11 @@ classdef DAQmxChannel < DAQmxTask
             % Retrieve value
             res = DAQmxChannel.EdgeType_code2str(code);
         end
-        function set.TriggerEdge(obj, state)
+        function set.StartTriggerEdge(obj, state)
             % Translate value
             code = DAQmxChannel.EdgeType_str2code(state);
             
-            % Set TriggerEdge
+            % Set StartTriggerEdge
             [ExitCode, ~] = calllib('NIDAQmx', ...
                                     'DAQmxSetStartTrigType', ...
                                     obj.TaskHandle, ...
@@ -278,8 +278,8 @@ classdef DAQmxChannel < DAQmxTask
             DAQmxErrorCheck(ExitCode);
         end
         
-        % SampleClockActiveEdge
-        function res = get.SampleClockActiveEdge(obj)
+        % SampleClockEdge
+        function res = get.SampleClockEdge(obj)
             % Get TimingType
             [ExitCode, ~, code] = calllib('NIDAQmx', ...
                                           'DAQmxGetSampClkTimebaseActiveEdge', ...
@@ -292,7 +292,7 @@ classdef DAQmxChannel < DAQmxTask
             % Retrieve value
             res = DAQmxChannel.EdgeType_code2str(code);
         end
-        function set.SampleClockActiveEdge(obj, edge)
+        function set.SampleClockEdge(obj, edge)
             % Translate value
             code = DAQmxChannel.EdgeType_str2code(edge);
             
@@ -448,7 +448,7 @@ classdef DAQmxChannel < DAQmxTask
         DAQmx_Val_GroupByScanNumber = int32(1);	
     end
     
-    methods (Static, Access=private)
+    methods (Static, Access=public)
        % StartTriggerType translations
        function res = StartTriggerType_str2code(state)
             switch lower(state)
@@ -493,7 +493,7 @@ classdef DAQmxChannel < DAQmxTask
                 case 'none'
                     res = DAQmxChannel.DAQmx_Val_None;    
                 otherwise
-                    error(['Unrecognized TriggerEdge string: ''' state '''']);
+                    error(['Unrecognized EdgeType string: ''' state '''']);
             end
         end
         function res = EdgeType_code2str(code)
@@ -505,7 +505,7 @@ classdef DAQmxChannel < DAQmxTask
                 case DAQmxChannel.DAQmx_Val_None
                     res = 'none';
                 otherwise
-                    error(['Unrecognized TriggerEdge code: ' int2str(code)]);
+                    error(['Unrecognized EdgeType code: ' int2str(code)]);
             end
         end 
         

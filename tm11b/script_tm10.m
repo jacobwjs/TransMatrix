@@ -32,18 +32,23 @@ name_of_script = mfilename;
 % Initialize the SLM
 run_test_patterns = false;
 slm = slm_device('meadowlark', run_test_patterns);
-
+%%
 % Initialize camera
 display('Initializing the camera...');
 vid = camera_mex('distal', 'ElectronicTrigger');
+% Configure camera for fixed exposure.
+camera_exposure_us = 100;
+set(vid.source, 'ExposureMode', 'Timed');
+set(vid.source, 'ExposureTime', camera_exposure_us);
+start(vid);
+
 % Define the ROI in the camera
 camera_frame_offsetX_pixels = 384;
-camera_frame_offsetY_pixels = 220;
+camera_frame_offsetY_pixels = 200;
 camera_width_pixels   = 544;
 camera_height_pixels  = 544;
 vid.ROIPosition = [camera_frame_offsetX_pixels camera_frame_offsetY_pixels...
                    camera_width_pixels camera_height_pixels];
-camera_exposure_us = 5000;
 fprintf('Camera exposure set to %d usecs\n\n', camera_exposure_us);
 
 
@@ -62,12 +67,18 @@ slm_params.fiber.y = 257;
 x_offset = 256;
 y_offset = 256;
 % Carrier frequency in k-space
-freq_x = -111;
-freq_y = 111;
+freq_x = -120;
+freq_y = 120;
 slm_params.freq.x = x_offset + freq_x;
 slm_params.freq.y = y_offset + freq_y;
-slm_params.freq.r1 = 70;
+
+% Set the number of plane waves (i.e. shifts in k-space) that couple light
+% into the fiber over a given range. That is, using the GUIDE software for
+% controlling the SLM, what is the range of the sliders that couple light
+% into the fiber.
+slm_params.freq.r1 = 30; 
 slm_params.freq.r2 = slm_params.freq.r1;
+
 slm_params = recalculate_square_masks(slm_params);
 % FIXME:
 % slm_params.freq.mask1 = mask_circular([slm_params.ROI(4),slm_params.ROI(3)],...
@@ -90,6 +101,17 @@ slm_params = recalculate_square_masks(slm_params);
 %     [],...
 %     slm_params.freq.r2*2);
 
+% Create a calibration frame for the SLM. This frame will be used for drift
+% correction of the laser.
+calibration_frame = modulation_slm(slm_params.ROI(3), ...
+                                   slm_params.ROI(4), ...
+                                   slm_params.freq.x, ...
+                                   slm_params.freq.y);
+                      
+% Show calibration frame.
+display('Writing calibration frame to SLM...');
+slm.Write_img(calibration_frame);
+
 
 % Define holography parameters
 % -------------------------------------------------------------------------
@@ -104,15 +126,26 @@ holo_params.exposure = camera_exposure_us;
 holo_params.fiber.x = center_of(holo_params.ROI(3)); 
 holo_params.fiber.y = center_of(holo_params.ROI(4));
 
+% FIXME:
+% - Use this to choose the center and radius of the order.
+% while (vid.FramesAvailable == 0)
+%     trigger_camera(holo_params.exposure, [], 1, false);
+% end
+% [temp_image, ~] = getdata(vid,1);
+% temp_image = db(myifft2(temp_image));
+% temp_image = ind2rgb(1+round(temp_image/15 * 255), labview);
+% order_attributes = holography_cal_circles(temp_image);
+% 
+
 % The center (pixel number x-axis and y-axis) of the selected order [k-space].
-% holo_params.freq.x = 456; Wrong order for CW alignment  
-% holo_params.freq.y = 407;   
-holo_params.freq.x = 115;   
-holo_params.freq.y = 155; 
+holo_params.freq.x = 115; %Wrong order for CW alignment  
+holo_params.freq.y = 95;  
+% holo_params.freq.x = order_attributes.xc; % Center of the order (x-axis pixel number)
+% holo_params.freq.y = order_attributes.yc; % Center of the order (y-axis pixel number)
 
 % The radius of the selected order in pixel count [k-space].
-holo_params.freq.r1 = 70;  
-holo_params.freq.r2 = slm_params.freq.r1; % Make them equal for the time being.
+holo_params.freq.r1 = 60;%order_attributes.r2;  
+holo_params.freq.r2 = 60;%order_attributes.r2; % Make them equal for the time being.
 
 holo_params.fiber.mask2 = mask_circular([holo_params.ROI(4) holo_params.ROI(3)],...
                                         holo_params.fiber.x, holo_params.fiber.y, 0.4*holo_params.ROI(3));
@@ -151,16 +184,6 @@ end
 % Output
 disp(['Input mask:  ' int2str(sum(slm_params.freq.mask1(:))) ' pixels (r=' int2str(slm_params.freq.r1) ')']);
 disp(['Input ROI:   ' int2str(slm_params.ROI(3)) 'x' int2str(slm_params.ROI(4))]);
-
-% Create a calibration frame
-calibration_frame = modulation_slm(slm_params.ROI(3), ...
-                                   slm_params.ROI(4), ...
-                                   slm_params.freq.x, ...
-                                   slm_params.freq.y);
-                      
-% Show calibration frame
-display('Writing calibration frame to SLM...');
-slm.Write_img(calibration_frame);
 
 
 disp(['Output mask: ' int2str(sum(holo_params.freq.mask1(:))) ' pixels (r=' int2str(holo_params.freq.r1) ')']);
@@ -208,11 +231,19 @@ sequence_function = @(n)interleave_calibration(interleave_factor, ...
 
 %% Pre-measurement check to see if the right order is selected
 slm.Write_img(calibration_frame);
-response_original = get_frame(vid, holo_params.exposure, false);
+%response_original = get_frame(vid, holo_params.exposure, false);
+while (vid.FramesAvailable == 0)
+    trigger_camera(holo_params.exposure, [], 1, false);
+end
+[response_original, ~] = getdata(vid,1);
 
 calibration_frame2 = uint8(mod(double(calibration_frame)+64,256));
 slm.Write_img(calibration_frame2);
-response_shifted = get_frame(vid, holo_params.exposure, false);
+%response_shifted = get_frame(vid, holo_params.exposure, false);
+while (vid.FramesAvailable == 0)
+    trigger_camera(holo_params.exposure, [], 1, false);
+end
+[response_shifted, ~] = getdata(vid,1);
 
 figure;
 imagesc(angle(fft2(response_original).*conj(fft2(response_shifted))));
@@ -257,12 +288,18 @@ slm.Write_img(255.*ones(size(calibration_frame2),'like',calibration_frame2));
 n_bg = 20;
 frame_bg = zeros(holo_params.ROI(4), holo_params.ROI(3), n_bg);
 for i=1:n_bg
-    frame_bg(:,:,i) = get_frame(vid, holo_params.exposure, false);
+    %frame_bg(:,:,i) = get_frame(vid, holo_params.exposure, false);
+    while (vid.FramesAvailable == 0)
+        trigger_camera(holo_params.exposure, [], 1, false);
+    end
+    frame_bg(:,:,i) = getdata(vid, 1);
+    
 end
 frame_bg = mean(double(frame_bg),3);
 background_vector = mask(fftshift2(fft2(frame_bg)),holo_params.freq.mask1);
 
 % Configure camera for fixed exposure
+stop(vid);
 set(vid.source, 'ExposureMode', 'Timed');
 set(vid.source, 'ExposureTime', holo_params.exposure);
 start(vid);
@@ -276,21 +313,32 @@ if (DEBUG)
     hold on;
 end
 
-% Begine the measurement of the inputs (X) to outputs (Y).
+% Begin the measurement of the inputs (X) to outputs (Y).
 data_rec = zeros(sum(sum(holo_params.freq.mask1)),number_of_frames,'like',1i);
 time = zeros(1,number_of_frames);
 progress(0,number_of_frames);
 for i=1:number_of_frames
     % Display pattern
     slm.Write_img(sequence_function(i));
-    %pause(0.050);
-      
-    % Grab frame
+    
+    % Trigger camera to grab a frame and give it time for the exposure.
     trigger_camera(holo_params.exposure, [], 1, false);
-    [frame, time(i)] = getdata(vid,1);
+    pause(500e-6);
+
+    while vid.FramesAvailable == 0
+        flushdata(vid);
+        trigger_camera(holo_params.exposure, [], 1, false);
+        pause(500e-6);
+    end
+
+    
+    while vid.FramesAvailable >= 1
+        [frame, time(i)] = getdata(vid,1);
+    end
     
     % Process frame and store
     data_rec(:,i) = camera_to_output(frame);
+    
      
     % Display figures of the scanning process if DEBUG=true
     if (DEBUG)
@@ -394,23 +442,33 @@ experiments = patterns_generate(patterns,...
 disp('Recording response to test patterns...');
 set(vid.source, 'ExposureMode', 'TriggerWidth');
 h_fig = figure;
-for i=1:numel(experiments)
-    % Show on SLM
-    slm.Write_img(experiments(i).SLM);
-    
-    % Pause
-    pause(0.100);
-    
-    % Grab frame
-    experiments(i).I_out = get_frame(vid, holo_params.exposure, false);
 
-    % Show image
-    figure(h_fig);
-    imagesc(experiments(i).I_out);
-    axis image; axis off;
-    title({['Experiment #' num2str(i)], ...
-           'Output'});
-end
+% Clear the camera of any leftover frames.
+%flushdata(vid);
+% for i=1:numel(experiments)
+%     % Show on SLM
+%     slm.Write_img(experiments(i).SLM);
+%     
+%     % Pause
+%     pause(0.100);
+%     
+%     % Grab frame
+%     %experiments(i).I_out = get_frame(vid, holo_params.exposure, false);
+%     while (vid.FramesAvailable == 0)
+%         trigger_camera(holo_params.exposure, [], 1, false);
+%         pause(1e-6);
+%     end
+%     experiments(i).I_out = getdata(vid, 1);
+%     
+%     % Show image
+%     figure(h_fig);
+%     imagesc(experiments(i).I_out);
+%     axis image; axis off;
+%     title({['Experiment #' num2str(i)], ...
+%            'Output'});
+% end
+
+
 display('Writing constant phase mask to SLM...');
 slm.Write_img(255.*ones(512, 512));
 
@@ -422,48 +480,48 @@ total_time = toc(tic_global);
 
 
 %% Save data
-% Timestamp
-stamp = clock;
-stamp_str = [num2str(stamp(1)) '-' num2str(stamp(2),'%02d') '-' num2str(stamp(3),'%02d') ' ' num2str(stamp(4),'%02d') '-' num2str(stamp(5),'%02d') '-' num2str(round(stamp(6)),'%02d')];
-
-display('Saving data for later use...');
-% Ask for name of file
-% str = input('Enter a description for this dataset (or CTRL-C to stop without saving):\n','s');
-% if numel(str)==0
-%     str = name_of_script;
-% end
-str = '_CW_experiment_100micron'
-data_filename = ['./data/' stamp_str ' ' str '.mat'];
-save2(data_filename,...
-       '*',...
-       '-bytes>100000000',...
-       '-class:handle',...
-       '-class:videoinput',...
-       '-class:videosource',...
-       '-class:gigeinput',...
-       '-class:gigesource',...
-	   '-inversions',...
-       '-input_function',...
-       '-input_matrix',...
-       '-output_matrix',...
-       '-data_rec',...
-       '-U',...
-       '-S',...
-       '-V',...
-       '-Tb',...
-       '-X_spots',...
-       '-Y_spots',...
-       '-V_sensor',...
-       '-phase_factor',...
-       '-phase_factor_v',...
-       '-spot_function',...
-       '-stack_bg',...
-       '-stack_hdr',...
-       '-y',...
-       'T',...
-       'Archive',...
-       'experiments',...
-       '/list-skipped');
+% % Timestamp
+% stamp = clock;
+% stamp_str = [num2str(stamp(1)) '-' num2str(stamp(2),'%02d') '-' num2str(stamp(3),'%02d') ' ' num2str(stamp(4),'%02d') '-' num2str(stamp(5),'%02d') '-' num2str(round(stamp(6)),'%02d')];
+% 
+% display('Saving data for later use...');
+% % Ask for name of file
+% % str = input('Enter a description for this dataset (or CTRL-C to stop without saving):\n','s');
+% % if numel(str)==0
+% %     str = name_of_script;
+% % end
+% str = '_Femto_experiment_100micron'
+% data_filename = ['./data/' stamp_str ' ' str '.mat'];
+% save2(data_filename,...
+%        '*',...
+%        '-bytes>100000000',...
+%        '-class:handle',...
+%        '-class:videoinput',...
+%        '-class:videosource',...
+%        '-class:gigeinput',...
+%        '-class:gigesource',...
+% 	   '-inversions',...
+%        '-input_function',...
+%        '-input_matrix',...
+%        '-output_matrix',...
+%        '-data_rec',...
+%        '-U',...
+%        '-S',...
+%        '-V',...
+%        '-Tb',...
+%        '-X_spots',...
+%        '-Y_spots',...
+%        '-V_sensor',...
+%        '-phase_factor',...
+%        '-phase_factor_v',...
+%        '-spot_function',...
+%        '-stack_bg',...
+%        '-stack_hdr',...
+%        '-y',...
+%        'T',...
+%        'Archive',...
+%        'experiments',...
+%        '/list-skipped');
 
    
 % 
@@ -475,12 +533,13 @@ save2(data_filename,...
 spot_phase_mask = @(x,y) uint8(input_to_slm(inversions.T_inv * ...
                                             field_to_output(pattern_spot(fiber_mask, x, y))));
 
-slm.Write_img(spot_phase_mask(0, 0));
+% To calcualte a single spot in the center of the camera image.
+%slm.Write_img(spot_phase_mask(0, 0));
    
    
-%% Form the scan.
-% display('Computing the scan sequence for the SLM...');
-% fiber_mask = holo_params.fiber.mask2;
+% %% Form the scan.
+% % display('Computing the scan sequence for the SLM...');
+% % fiber_mask = holo_params.fiber.mask2;
 x_range = -30:10:30; 
 y_range = -30:10:30; 
 
@@ -491,16 +550,16 @@ y_range = -30:10:30;
 % reshape once again.
 spots = struct();
 spots.working_dist_100um = uint8(zeros(slm.x_pixels, slm.y_pixels, length(x_range)*length(y_range)));
-spots.working_dist_200um = uint8(zeros(slm.x_pixels, slm.y_pixels, length(x_range)*length(y_range)));
-spots.working_dist_300um = uint8(zeros(slm.x_pixels, slm.y_pixels, length(x_range)*length(y_range)));
-spots.working_dist_400um = uint8(zeros(slm.x_pixels, slm.y_pixels, length(x_range)*length(y_range)));
-spots.working_dist_500um = uint8(zeros(slm.x_pixels, slm.y_pixels, length(x_range)*length(y_range)));
+% spots.working_dist_200um = uint8(zeros(slm.x_pixels, slm.y_pixels, length(x_range)*length(y_range)));
+% spots.working_dist_300um = uint8(zeros(slm.x_pixels, slm.y_pixels, length(x_range)*length(y_range)));
+% spots.working_dist_400um = uint8(zeros(slm.x_pixels, slm.y_pixels, length(x_range)*length(y_range)));
+% spots.working_dist_500um = uint8(zeros(slm.x_pixels, slm.y_pixels, length(x_range)*length(y_range)));
 
 index = 0;
 
 % Boolean controlling how the scan is formed. Either line-by-line or raster
 % scanning.
-LINE_SCAN = false;
+LINE_SCAN = true;
 RASTER_SCAN = ~LINE_SCAN; % We can only do one or the other type of scan.
 if (RASTER_SCAN)
     display('(Raster scan)');
@@ -512,14 +571,14 @@ end
 % sense to use with the imaging system in place to image the focus onto the
 % camera at different distances. If anything changes these values are
 % nonsensical. 
-magnification_at_200um = 21.5;
-distance_200um = 4*25.4e-6;
-magnification_at_300um = 19.65;
-distance_300um = 8*25.4e-6;
-magnification_at_400um = 18.3;
-distance_400um = 12*25.4e-6;
-magnification_at_500um = 17.25;
-distance_500um = 16*25.4e-6;
+magnification_at_100um = 21.5;
+distance_100um = 0; %4*25.4e-6;
+% magnification_at_200um = 19.65;
+% distance_200um = 8*25.4e-6;
+% magnification_at_300um = 18.3;
+% distance_300um = 12*25.4e-6;
+% magnification_at_400um = 17.25;
+% distance_400um = 16*25.4e-6;
 
 % Needed for propagation.
 camera_pixel_pitch = 8e-6;
@@ -546,43 +605,47 @@ for i = x_range
         fields = [];
         
 
-        % If trained at a location (e.g. 100 um) then we don't need to
-        % propagate.
         % FIXME:
         % - Why must 'i', and 'j' be swapped to match the indexing in
         % 'output_to_propagate'. Otherwise the spot is scanned differently.
-        field_100um = pattern_spot(fiber_mask,j,i);
+        %field_calibration = pattern_spot(fiber_mask,j,i);
         
         % Otherwise we need to propagate for each distance.
-        [field_200um] = propagate_v2(output_to_propagate, ...
-                                     distance_200um, ... 
+        [field_100um] = propagate_v2(output_to_propagate, ...
+                                     distance_100um, ... 
                                      camera_pixel_pitch, ...
                                      lambda, ...
-                                     magnification_at_200um);
-        [field_300um] = propagate_v2(output_to_propagate, ...
-                                     distance_300um, ... 
-                                     camera_pixel_pitch, ...
-                                     lambda, ...
-                                     magnification_at_300um);
-        [field_400um] = propagate_v2(output_to_propagate, ...
-                                     distance_400um, ... 
-                                     camera_pixel_pitch, ...
-                                     lambda, ...
-                                     magnification_at_400um);
-        [field_500um] = propagate_v2(output_to_propagate, ...
-                                     distance_500um, ... 
-                                     camera_pixel_pitch, ...
-                                     lambda, ...
-                                     magnification_at_500um);                         
+                                     magnification_at_100um);
+        
+%         [field_200um] = propagate_v2(output_to_propagate, ...
+%                                      distance_200um, ... 
+%                                      camera_pixel_pitch, ...
+%                                      lambda, ...
+%                                      magnification_at_200um);
+%         [field_300um] = propagate_v2(output_to_propagate, ...
+%                                      distance_300um, ... 
+%                                      camera_pixel_pitch, ...
+%                                      lambda, ...
+%                                      magnification_at_300um);
+%         [field_400um] = propagate_v2(output_to_propagate, ...
+%                                      distance_400um, ... 
+%                                      camera_pixel_pitch, ...
+%                                      lambda, ...
+%                                      magnification_at_400um);
+%         [field_500um] = propagate_v2(output_to_propagate, ...
+%                                      distance_500um, ... 
+%                                      camera_pixel_pitch, ...
+%                                      lambda, ...
+%                                      magnification_at_500um);                         
         
         
         % Assign all the fields to be converted for each spot location and
         % depth.
         fields(:,:,1) = field_100um;
-        fields(:,:,2) = field_200um;
-        fields(:,:,3) = field_300um;
-        fields(:,:,4) = field_400um;
-        fields(:,:,5) = field_500um;
+%         fields(:,:,2) = field_200um;
+%         fields(:,:,3) = field_300um;
+%         fields(:,:,4) = field_400um;
+%         fields(:,:,5) = field_500um;
                
         
         % Walk through the transmission matrix backwards to get the mask
@@ -593,30 +656,11 @@ for i = x_range
         
         % Assign each mask for each spot to the given depth for later use.
         spots.working_dist_100um(:,:,index) = SLM_propagated_masks(:,:,1);
-        spots.working_dist_200um(:,:,index) = SLM_propagated_masks(:,:,2);
-        spots.working_dist_300um(:,:,index) = SLM_propagated_masks(:,:,3);
-        spots.working_dist_400um(:,:,index) = SLM_propagated_masks(:,:,4);
-        spots.working_dist_500um(:,:,index) = SLM_propagated_masks(:,:,5);
-        
-        
-        
-%         % Save desired target vector
-%         % i = 0; j = 0;
-%         % i = -36; j = 35;
-%         % i = 123; j = -35;
-%         Y_target = field_to_output(pattern_spot(fiber_mask,j,i));
-% 
-%         % Calculate corresponding input pattern
-%         X_inv = inversions.T_inv * Y_target;
+%         spots.working_dist_200um(:,:,index) = SLM_propagated_masks(:,:,2);
+%         spots.working_dist_300um(:,:,index) = SLM_propagated_masks(:,:,3);
+%         spots.working_dist_400um(:,:,index) = SLM_propagated_masks(:,:,4);
+%         spots.working_dist_500um(:,:,index) = SLM_propagated_masks(:,:,5);
 %         
-%         % Calculate the required SLM mask
-%         %SLM_mask = input_to_slm(conj(X_inv));
-%         SLM_mask = uint8(input_to_slm(X_inv));
-%         
-%         spots(:,:,index) = SLM_mask;
-%         
-%         % Write to the SLM.
-%         slm.Write_img(SLM_mask);
         
         
 %        % From the SLM mask, get the experimental input that is actually sent to the fiber
@@ -632,17 +676,17 @@ for i = x_range
     progress(index, length(x_range)*length(y_range));
 end
 
-% display('Adding spot formation data to .mat file');
-% save(data_filename, 'spots','-append');
+% % display('Adding spot formation data to .mat file');
+% % save(data_filename, 'spots','-append');
 
 
-
+break
 
 %% Scan the spots in an infinite loop!
-% while 1
-%     for i = 1:size(spots.working_dist_100um, 3)
-%         slm.Write_img(spots.working_dist_100um(:,:,i));
-%         pause(0.125);
+while 1
+    for i = 1:size(spots.working_dist_100um, 3)
+        slm.Write_img(spots.working_dist_100um(:,:,i));
+        pause(0.150);
 %         slm.Write_img(spots.working_dist_200um(:,:,i));
 %         pause(0.125);
 %         slm.Write_img(spots.working_dist_300um(:,:,i));
@@ -651,8 +695,8 @@ end
 %         pause(0.125);
 %         slm.Write_img(spots.working_dist_500um(:,:,i));
 %         pause(0.125);
-%     end
-% end
+    end
+end
 
 
 
@@ -671,93 +715,210 @@ end
 % end
 % end
 
-break
 
 
-%% Propagate the spot a given distance.
-% NOTE:
-% - The camera frame must match the size used to form the transmission
-% matrix. If there is an error about masks not matching frame sizes, this
-% is likely the reason. Force a reset to original dimensions here just in
-% case it was changed.
-vid.ROIPosition = [camera_frame_offsetX_pixels camera_frame_offsetY_pixels...
-                   camera_width_pixels camera_height_pixels];
-               
-% Function accepts the output that you would like to propagate. For example,
-% to propagate a spot, send in a matrix (match camera frame dimensions used
-% to form the transmission matrix) with a single pixel set to 1.
-output_to_propagate = zeros(camera_width_pixels, camera_height_pixels);
-output_to_propagate(round(camera_width_pixels/2),...
-                    round(camera_height_pixels/2)) = 1;
-
-                
-                
-distance_100um = 4*25.4e-6;                
-                
-%magnification_at_200um = 21.5;
-distance_200um = 8*25.4e-6;
-
-%magnification_at_300um = 19.65;
-distance_300um = 12*25.4e-6;
-
-%magnification_at_400um = 18.3;
-distance_400um = 16*25.4e-6;
-
-%magnification_at_500um = 17.25;
-distance_500um = 20*25.4e-6;
-
-magnifications = [15:0.15:26];
-%distances = [1:1:6].*25.4e-6;
-
-distances = distance_300um
-
-camera_pixel_pitch = 8e-6;
-lambda = 785e-9;
-[fields] = propagate_v2(output_to_propagate, ...
-                        distances, ... 
-                        camera_pixel_pitch, ...
-                        lambda, ...
-                        magnifications);
-Y_targets = field_to_output(fields);
-X_invs = inversions.T_inv * Y_targets;
-SLM_propagated_masks = uint8(input_to_slm(X_invs));
-
-% Find the correct magnification to use at this propagation distance using
-% the imaging system we have in place with the camera.
-peak_focus_intensity = [];
-for i=1:size(SLM_propagated_masks, 3)
-    slm.Write_img(SLM_propagated_masks(:,:,i));
-    peak_focus_intensity = [peak_focus_intensity, max(max(get_frame(vid, 50, false)))];
-    pause(0.05);
-end
-% Plot the result of using each magnification at this propagation distance.
-figure, plot(magnifications, peak_focus_intensity);
-% Find the index that produced the peak intensity in the focus.
-peak_index = find(peak_focus_intensity == max(peak_focus_intensity));
-fprintf('Magnification that produces the peak intensity in the focus is m=%d\n',...
-         magnifications(peak_index));
-     
-% Propagate the      
-display('Propagating beam using found magnification');
-slm.Write_img(SLM_propagated_masks(:, :, peak_index));
+% %% Propagate the spot a given distance.
+% % NOTE:
+% % - The camera frame must match the size used to form the transmission
+% % matrix. If there is an error about masks not matching frame sizes, this
+% % is likely the reason. Force a reset to original dimensions here just in
+% % case it was changed.
+% vid.ROIPosition = [camera_frame_offsetX_pixels camera_frame_offsetY_pixels...
+%                    camera_width_pixels camera_height_pixels];
+%                
+% % Function accepts the output that you would like to propagate. For example,
+% % to propagate a spot, send in a matrix (match camera frame dimensions used
+% % to form the transmission matrix) with a single pixel set to 1.
+% output_to_propagate = zeros(camera_width_pixels, camera_height_pixels);
+% output_to_propagate(round(camera_width_pixels/2),...
+%                     round(camera_height_pixels/2)) = 1;
+% 
+%                 
+%                 
+% distance_100um = 4*25.4e-6;                
+%                 
+% %magnification_at_200um = 21.5;
+% distance_200um = 8*25.4e-6;
+% 
+% %magnification_at_300um = 19.65;
+% distance_300um = 12*25.4e-6;
+% 
+% %magnification_at_400um = 18.3;
+% distance_400um = 16*25.4e-6;
+% 
+% %magnification_at_500um = 17.25;
+% distance_500um = 20*25.4e-6;
+% 
+% magnifications = [15:0.15:26];
+% %distances = [1:1:6].*25.4e-6;
+% 
+% 
+% magnifications = [18:0.125:25];
+% distances = distance_100um
+% 
+% 
+% stop(vid); set(vid.source, 'ExposureMode', 'Timed');
+% set(vid.source, 'ExposureTime', 500);
+% start(vid);
+% 
+% camera_pixel_pitch = 8e-6;
+% lambda = 785e-9;
+% [fields] = propagate_v2(output_to_propagate, ...
+%                         distances, ... 
+%                         camera_pixel_pitch, ...
+%                         lambda, ...
+%                         magnifications);
+% Y_targets = field_to_output(fields);
+% X_invs = inversions.T_inv * Y_targets;
+% SLM_propagated_masks = uint8(input_to_slm(X_invs));
+% 
+% % Find the correct magnification to use at this propagation distance using
+% % the imaging system we have in place with the camera.
+% peak_focus_intensity = [];
+% for i=1:size(SLM_propagated_masks, 3)
+%     slm.Write_img(SLM_propagated_masks(:,:,i));
+%      while (vid.FramesAvailable == 0)
+%         trigger_camera(200, [], 1, false);
+%         pause(1e-6);
+%      end
+%     peak_focus_intensity = [peak_focus_intensity, max(max(getdata(vid, 1)))];
+%     pause(0.05);
+% end
+% % Plot the result of using each magnification at this propagation distance.
+% figure, plot(magnifications, peak_focus_intensity);
+% % Find the index that produced the peak intensity in the focus.
+% peak_index = find(peak_focus_intensity == max(peak_focus_intensity));
+% fprintf('Magnification that produces the peak intensity in the focus is m=%d\n',...
+%          magnifications(peak_index));
+%      
+% % Propagate the      
+% display('Propagating beam using found magnification');
+% slm.Write_img(SLM_propagated_masks(:, :, peak_index));
 
 
 
 
 %% Align the delay line (i.e. reference arm) using the Fourier domain as feedback.
-% % stop(vid);
-% % set(vid.source, 'ExposureMode', 'TriggerWidth');
-% % start(vid);
-% % figure;
-% % while 1
-% % %     frame = get_frame(vid, 2000, false);
-% % %     imagesc(db(fftshift2(fft2(frame))));
-% % 
-% %     trigger_camera(holo_params.exposure, [], 1, false);
-% %     [frame, ~] = getdata(vid,1);
+% stop(vid);
+% set(vid.source, 'ExposureMode', 'Timed');
+% exposure_us = 1500;
+% set(vid.source, 'ExposureTime', exposure_us);
+% start(vid);
+% figure;
+% while 1
+% %     frame = get_frame(vid, 2000, false);
 % %     imagesc(db(fftshift2(fft2(frame))));
-% %     %imagesc(frame);
-% %     drawnow;
+% 
+%     % Loop until a frame is available. Prevents camera from timing out.
+%     while (vid.FramesAvailable == 0)
+%         trigger_camera(exposure_us, [], 1, false);
+%         pause(2*exposure_us*1e-6);
+%     end
+%        
+%     [frame, ~] = getdata(vid,1);
+%     subplot(3,1,1), imagesc(db(fftshift2(fft2(frame))));
+%     axis image
+%     colorbar
+% %     caxis([30 160])
+%     
+%     subplot(3,1,2), imagesc((frame(150:250,250:350)));
+%     axis image
+%     colorbar
+% 
+%     colormap(gray)
+%     
+%     subplot(3,1,3), imagesc((frame));
+%     axis image
+%     colorbar
+%     colormap(gray)
+%    
+%     %imagesc(frame);
+%     drawnow;
+%     
+% end
+
+
+%% Look at drift
+% stop(vid);
+% set(vid.source, 'ExposureMode', 'Timed');
+% exposure_us = 250;
+% set(vid.source, 'ExposureTime', exposure_us);
+% start(vid);
+% figure;
+% count = 0;
+% lastFrame = 180;
+% 
+% time = zeros(1,lastFrame);
+% for i = 1:lastFrame
+%     i
+% 
+%     while (vid.FramesAvailable == 0)
+%         trigger_camera(exposure_us, [], 1, false);
+%         pause(2*exposure_us*1e-6);
+%         
+%     end
+%     count = count + 1;
+%     [frame, time(i)] = getdata(vid,1);
+%     
+%     data_rec(:,i) = camera_to_output(frame);
+%      
+% %      
+% %      
+% %     if i == 1
+% %         ref_frame = frame;
+% %         num =  max(max( myifft2(myfft2(ref_frame).*conj(myfft2(frame)))));
+% %     end
 % %     
-% %    % pause(0.25);
-% % end
+% %     correl(i) = max(max( myifft2(myfft2(ref_frame).*conj(myfft2(frame)))));
+% 
+% %     frames_time(:,:,count) = frame;
+%     imagesc(db(fftshift2(fft2(frame))));
+%     colorbar
+%     caxis([30 160])
+%     %imagesc(frame);
+%     
+%     pause(5)
+% 
+% end
+
+
+% correl = correl/num;
+
+% figure, plot(correl)
+
+% 
+%  data_rec_cal = data_rec;
+%     time_cal     = time;
+%     reference    = data_rec_cal(:,1);
+%     
+%     data_rec = data_rec;
+%     time     = time;
+%     
+%     % Estimation of drift and power fluctuations
+%     disp('Drift estimation...');
+%     [corr_cal, Rxy, ~, power_cal] = corr2c2(reference, data_rec_cal);
+%     pred_cal = Rxy./power_cal;
+%     
+%     % Phase interpolation
+%     sc = csapi(time_cal, corr_cal);
+%     
+%     comp = fnval(sc, time);
+%     comp_cal = fnval(sc, time_cal);
+%     
+%     comp     = comp     ./ abs(comp);
+%     comp_cal = comp_cal ./ abs(comp_cal);
+% 
+%      figure;
+%     phase_plot = unwrap(angle(corr_cal))/pi*180;
+%     plot(time_cal, phase_plot, 'r');
+% 
+% %% Corrections
+% % Drift compensation
+% calibration_frames = ones(lastFrame,1);
+% 
+% [T, time_matrix, ...
+%  corr_cal, power_cal, pred_cal, time_cal, ...
+%  data_rec_cal_mean, data_rec_cal_std ] ...
+%        = drift_correction(data_rec, time, calibration_frames);
+% clear data_rec;
+   
